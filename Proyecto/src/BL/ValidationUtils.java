@@ -14,7 +14,7 @@ public class ValidationUtils {
         if (emptyChecker(phone)){
             return false;
         }else {
-            return phone.matches("8");
+            return phone.matches("1234-2313");
         }
     }
 
