@@ -1,6 +1,6 @@
 package GUI;
 
-public class MainMenu {
+public class LoanSystem {
     public static void main(String[] args) {
 
     }
