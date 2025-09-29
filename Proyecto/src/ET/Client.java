@@ -7,21 +7,21 @@ public class Client {
     private String fullName;
     private String identificationNumber;
     private String address;
-    private int phone;
+    private String phone;
     private String email;
-    private Date registerDate;
+    //private Date registerDate;
 
     public Client() {
     }
 
-    public Client(int clientId, String fullName, String identificationNumber, String address, int phone, String email, Date registerDate) {
+    public Client(int clientId, String fullName, String identificationNumber, String address, String phone, String email) {
         this.clientId = clientId;
         this.fullName = fullName;
         this.identificationNumber = identificationNumber;
         this.address = address;
         this.phone = phone;
         this.email = email;
-        this.registerDate = registerDate;
+        //this.registerDate = registerDate;
     }
 
     public int getClientId() {
@@ -56,11 +56,11 @@ public class Client {
         this.address = address;
     }
 
-    public int getPhone() {
+    public String getPhone() {
         return phone;
     }
 
-    public void setPhone(int phone) {
+    public void setPhone(String phone) {
         this.phone = phone;
     }
 
@@ -72,11 +72,11 @@ public class Client {
         this.email = email;
     }
 
-    public Date getRegisterDate() {
+    /*public Date getRegisterDate() {
         return registerDate;
     }
 
     public void setRegisterDate(Date registerDate) {
         this.registerDate = registerDate;
-    }
+    }*/
 }
