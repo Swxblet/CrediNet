@@ -2,7 +2,6 @@ package BL;
 
 import DAL.ClientDAL;
 import ET.Client;
-import UTILS.ValidationUtils;
 
 import java.util.ArrayList;
 

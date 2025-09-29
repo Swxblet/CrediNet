@@ -1,4 +1,4 @@
-package UTILS;
+package BL;
 
 public class ValidationUtils {
 

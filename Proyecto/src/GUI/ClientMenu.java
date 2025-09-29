@@ -8,8 +8,9 @@ import javax.swing.*;
 public class ClientMenu {
     ClientService clientService = new ClientService();
     public void show() {
-        while (true) {
-            String option = JOptionPane.showInputDialog(
+        String option;
+        do{
+            option = JOptionPane.showInputDialog(
                     "=== Gestión de Clientes ===\n" +
                             "1. Crear Cliente\n" +
                             "2. Mostrar Clientes\n" +
@@ -21,6 +22,7 @@ public class ClientMenu {
             if (option == null) break;
             switch (option) {
                 case "1":
+                    createClient();
                     break;
                 case "2":
                     showClients();
@@ -36,7 +38,7 @@ public class ClientMenu {
                 default:
                     JOptionPane.showMessageDialog(null, "Opción inválida");
             }
-        }
+        }while (!option.equals("0"));
     }
 
     private void createClient() {
