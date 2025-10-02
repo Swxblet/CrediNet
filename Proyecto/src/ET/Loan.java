@@ -4,8 +4,8 @@ import java.util.Date;
 
 public class Loan {
     private int loanId;
-    private int clientId;
-    private int operatorId;
+    private Client clientId;
+    private Operator operatorId;
     private long amount;
     private short interestRate;
     private short termMonths;
@@ -19,7 +19,7 @@ public class Loan {
     }
 
     // Overloaded constructor (all-args)
-    public Loan(int loanId, int clientId, int operatorId, long amount, short interestRate, short termMonths, long totalToPay, Date startDate, Date endDate, String status) {
+    public Loan(int loanId, Client clientId, Operator operatorId, long amount, short interestRate, short termMonths, long totalToPay, Date startDate, Date endDate, String status) {
         this.loanId = loanId;
         this.clientId = clientId;
         this.operatorId = operatorId;
@@ -40,19 +40,19 @@ public class Loan {
         this.loanId = loanId;
     }
 
-    public int getClientId() {
+    public Client getClientId() {
         return clientId;
     }
 
-    public void setClientId(int clientId) {
+    public void setClientId(Client clientId) {
         this.clientId = clientId;
     }
 
-    public int getOperatorId() {
+    public Operator getOperatorId() {
         return operatorId;
     }
 
-    public void setOperatorId(int operatorId) {
+    public void setOperatorId(Operator operatorId) {
         this.operatorId = operatorId;
     }
 

@@ -4,7 +4,7 @@ import java.util.Date;
 
 public class Payment {
     private int paymentId;
-    private int loanId;
+    private Loan loanId;
     private long amountPaid;
     private Date paymentDate;
 
@@ -13,7 +13,7 @@ public class Payment {
     public Payment() {
     }
     
-    public Payment(int paymentId, int loanId, long amountPaid, Date paymentDate) {
+    public Payment(int paymentId, Loan loanId, long amountPaid, Date paymentDate) {
         this.paymentId = paymentId;
         this.loanId = loanId;
         this.amountPaid = amountPaid;
@@ -28,11 +28,11 @@ public class Payment {
         this.paymentId = paymentId;
     }
 
-    public int getLoanId() {
+    public Loan getLoanId() {
         return loanId;
     }
 
-    public void setLoanId(int loanId) {
+    public void setLoanId(Loan loanId) {
         this.loanId = loanId;
     }
 
