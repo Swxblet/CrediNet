@@ -9,7 +9,7 @@ public class Client {
     private String address;
     private String phone;
     private String email;
-    //private Date registerDate;
+    //private Date registerDate; TODO
 
     public Client() {
     }
@@ -21,7 +21,7 @@ public class Client {
         this.address = address;
         this.phone = phone;
         this.email = email;
-        //this.registerDate = registerDate;
+        //this.registerDate = registerDate; TODO
     }
 
     public int getClientId() {

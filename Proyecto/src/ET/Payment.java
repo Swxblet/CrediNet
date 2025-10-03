@@ -8,8 +8,6 @@ public class Payment {
     private long amountPaid;
     private Date paymentDate;
 
-
-    // Empty constructor
     public Payment() {
     }
     
