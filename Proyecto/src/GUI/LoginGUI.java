@@ -14,7 +14,7 @@ public class LoginGUI extends JFrame {
 
     public LoginGUI() {
         // Configuración base de la ventana
-        setTitle("Banco BEC - Login");
+        setTitle("CrediNet");
         setSize(420, 520);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -156,4 +156,3 @@ public class LoginGUI extends JFrame {
         SwingUtilities.invokeLater(() -> setVisible(true));
     }
 }
-
