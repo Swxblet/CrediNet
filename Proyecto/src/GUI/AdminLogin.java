@@ -22,7 +22,7 @@ public class AdminLogin extends JFrame {
         //Panel principal
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBackground(new Color(129, 133, 137));
+        mainPanel.setBackground(new Color(207, 224, 250));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 60, 30, 60));
 
         // Imagen del administrador
@@ -49,40 +49,39 @@ public class AdminLogin extends JFrame {
         // Labels y campos de texto
         JLabel lblUser = new JLabel("Usuario");
         lblUser.setFont(montserrat);
-        lblUser.setForeground(Color.WHITE);
+        lblUser.setForeground(Color.BLACK);
 
         JTextField txtUsername = new JTextField(15);
         loginGUI.estilizarCampo(txtUsername);
 
         JLabel lblEmail = new JLabel("Email");
         lblEmail.setFont(montserrat);
-        lblEmail.setForeground(Color.WHITE);
+        lblEmail.setForeground(Color.BLACK);
 
         JTextField txtEmail = new JTextField(15);
         loginGUI.estilizarCampo(txtEmail);
-        txtEmail.setBackground(new Color(245, 245, 245));
 
         JLabel lblPass = new JLabel("Contraseña");
         lblPass.setFont(montserrat);
-        lblPass.setForeground(Color.WHITE);
+        lblPass.setForeground(Color.BLACK);
 
         JPasswordField txtPassword = new JPasswordField(15);
         loginGUI.estilizarCampo(txtPassword);
 
         // Botón de login
-        JButton btnLogin = LoginGUI.getJButton(montserrat, 48, 43, 43);
+        JButton btnLogin = LoginGUI.getJButton(montserrat, 4, 10, 36);
 
         // Agregar elementos al panel principal
         mainPanel.add(lblLogo);
         mainPanel.add(Box.createVerticalStrut(30));
 
-        mainPanel.add(loginGUI.crearFilaCampo(lblUser, txtUsername,129, 133, 137));
+        mainPanel.add(loginGUI.crearFilaCampo(lblUser, txtUsername,207, 224, 250));
         mainPanel.add(Box.createVerticalStrut(15));
 
-        mainPanel.add(loginGUI.crearFilaCampo(lblEmail, txtEmail,129, 133, 137));
+        mainPanel.add(loginGUI.crearFilaCampo(lblEmail, txtEmail,207, 224, 250));
         mainPanel.add(Box.createVerticalStrut(15));
 
-        mainPanel.add(loginGUI.crearFilaCampo(lblPass, txtPassword,129, 133, 137));
+        mainPanel.add(loginGUI.crearFilaCampo(lblPass, txtPassword,207, 224, 250));
         mainPanel.add(Box.createVerticalStrut(25));
 
         mainPanel.add(btnLogin);
