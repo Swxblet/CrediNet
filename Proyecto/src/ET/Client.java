@@ -1,8 +1,9 @@
 package ET;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Client {
+public class Client implements Serializable {
     private int clientId;
     private String fullName;
     private String identificationNumber;

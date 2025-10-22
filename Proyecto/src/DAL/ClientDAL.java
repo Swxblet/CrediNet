@@ -3,8 +3,13 @@ package DAL;
 import ET.Client;
 import javax.swing.*;
 import java.util.ArrayList;
+import java.io.*;
+import java.nio.*;
 
 public class ClientDAL {
+    private static final String DATA_DIR = "DATA";
+    private static final String FILE_PATH = DATA_DIR + File.separator + "clients.dat";
+
     private static final ArrayList<Client> listOfClients = new ArrayList<>();
     private static int idCounter = 0;
     public ClientDAL() {

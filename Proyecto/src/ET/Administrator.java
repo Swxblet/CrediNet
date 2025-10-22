@@ -1,8 +1,9 @@
 package ET;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Administrator {
+public class Administrator implements Serializable {
     private int adminId;
     private String fullName;
     private String username;
