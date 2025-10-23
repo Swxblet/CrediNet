@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class ClientService {
     ClientDAL clientDAL = new ClientDAL();
-    public ClientService() {
+    public ClientService() throws Exception {
 
     }
 

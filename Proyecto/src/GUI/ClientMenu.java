@@ -6,7 +6,16 @@ import ET.Client;
 import javax.swing.*;
 
 public class ClientMenu {
-    ClientService clientService = new ClientService();
+    ClientService clientService;
+
+    {
+        try {
+            clientService = new ClientService();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error al cargar el cliente");
+        }
+    }
+
     public void show() {
         String option;
         do{
@@ -64,15 +73,19 @@ public class ClientMenu {
     }
 
     private void updateClient() {
-        String id = JOptionPane.showInputDialog("Ingrese cédula del cliente a actualizar:");
-        String newName = JOptionPane.showInputDialog("Nuevo nombre:");
-        String newEmail = JOptionPane.showInputDialog("Nuevo correo:");
-        String newAddress = JOptionPane.showInputDialog("Nueva dirección:");
-        String newPhone = JOptionPane.showInputDialog("Nuevo teléfono:");
+        try {
+            String id = JOptionPane.showInputDialog("Ingrese cédula del cliente a actualizar:");
+            String newName = JOptionPane.showInputDialog("Nuevo nombre:");
+            String newEmail = JOptionPane.showInputDialog("Nuevo correo:");
+            String newAddress = JOptionPane.showInputDialog("Nueva dirección:");
+            String newPhone = JOptionPane.showInputDialog("Nuevo teléfono:");
 
-        Client updated = new Client(0, id, newName, newAddress, newPhone, newEmail);
-        boolean success = clientService.updateClient(id, updated);
-        JOptionPane.showMessageDialog(null, success ? "Cliente actualizado" : "Cliente no encontrado");
+            Client updated = new Client(0, id, newName, newAddress, newPhone, newEmail);
+            boolean success = clientService.updateClient(id, updated);
+            JOptionPane.showMessageDialog(null, success ? "Cliente actualizado" : "Cliente no encontrado");
+        }catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error al actualizar cliente");
+        }
     }
 
     private void deleteClient() {

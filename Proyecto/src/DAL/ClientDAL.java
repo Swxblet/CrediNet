@@ -10,10 +10,10 @@ public class ClientDAL {
     private static final String DATA_DIR = "DATA";
     private static final String FILE_PATH = DATA_DIR + File.separator + "clients.dat";
 
-    private static final ArrayList<Client> listOfClients = new ArrayList<>();
+    private static ArrayList<Client> listOfClients = new ArrayList<>();
     private static int idCounter = 0;
-    public ClientDAL() {
-
+    public ClientDAL() throws Exception{
+        listOfClients = loadClient();
     }
     public void insertClient(Client clientToInsert){
         clientToInsert.setClientId(idCounter++);
@@ -24,15 +24,13 @@ public class ClientDAL {
         return listOfClients;
     }
 
-    public boolean updateClient(Client clientToUpdate) throws Exception{
+    public void updateClient(Client clientToUpdate) throws Exception{
         for (int i = 0; i < listOfClients.size(); i++){
             if(listOfClients.get(i).getClientId() == clientToUpdate.getClientId()){
                 listOfClients.set(i, clientToUpdate);
                 saveClient();
-                return true;
             }
         }
-        return false;
     }
 
     public void deleteClient(Client clientToDelete){
