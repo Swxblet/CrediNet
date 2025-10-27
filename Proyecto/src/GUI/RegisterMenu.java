@@ -1,4 +1,6 @@
 package GUI;
 
-public class RegisterMenu {
+import javax.swing.*;
+
+public class RegisterMenu extends JFrame {
 }
