@@ -24,28 +24,38 @@ public class LoginMenu extends JFrame {
         // Panel principal
         JPanel mainPanel = new JPanel(new BorderLayout());
 
-        // --- PANEL IZQUIERDO (DEGRADADO AZUL) ---
+        // --- PANEL IZQUIERDO (DEGRADADO AZUL + GIF DE FONDO) ---
         JPanel leftPanel = new JPanel() {
+            private final ImageIcon gif = new ImageIcon("Proyecto/assets/gif/loginAnimation.gif");
+
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
+
                 Graphics2D g2 = (Graphics2D) g;
-                GradientPaint gp = new GradientPaint(0, 0,
+                GradientPaint gp = new GradientPaint(
+                        0, 0,
                         new Color(0, 123, 255),
                         getWidth(), getHeight(),
-                        new Color(0, 82, 204));
+                        new Color(0, 82, 204)
+                );
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
+
+                // Dibujar el GIF sobre el degradado (centrado y ajustado al tamaño del panel)
+                g.drawImage(gif.getImage(), 0, 0, getWidth(), getHeight(), this);
             }
         };
         leftPanel.setPreferredSize(new Dimension(320, getHeight()));
         leftPanel.setLayout(new GridBagLayout());
 
-        // Logo centrado en panel azul
+// --- LOGO CENTRADO SOBRE EL GIF ---
         JLabel lblLogo = new JLabel();
         ImageIcon originalIcon = new ImageIcon("Proyecto/assets/img/userIcon.png");
         Image scaledImage = originalIcon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
         lblLogo.setIcon(new ImageIcon(scaledImage));
+        lblLogo.setOpaque(false); // para mantener transparencia sobre el GIF
+
         leftPanel.add(lblLogo);
 
         // --- PANEL DERECHO (LOGIN) ---
