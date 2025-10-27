@@ -7,32 +7,46 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class AdminLogin extends JFrame {
-    LoginMenu loginGUI = new LoginMenu();
-    private JTextField txtEmail;
-    private int logoClickCount;
+    private int logoClickCount = 0;
+    private final LoginMenu loginGUI = new LoginMenu();
+
     public AdminLogin() {
-        // Configuración base de la ventana
-        setTitle("CrediNet Admin");
-        setSize(420, 520);
+        // Configuración base
+        setTitle("CrediNet | Admin Login");
+        setSize(800, 520);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
         setIconImage(new ImageIcon("Proyecto/assets/img/miniLogo.png").getImage());
 
-        //Panel principal
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBackground(new Color(207, 224, 250));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 60, 30, 60));
+        // --- PANEL PRINCIPAL ---
+        JPanel mainPanel = new JPanel(new BorderLayout());
 
-        // Imagen del administrador
+        // --- PANEL IZQUIERDO (DEGRADADO AZUL) ---
+        JPanel leftPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(0, 123, 255),
+                        getWidth(), getHeight(),
+                        new Color(0, 82, 204));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        leftPanel.setPreferredSize(new Dimension(320, getHeight()));
+        leftPanel.setLayout(new GridBagLayout());
+
+        // --- LOGO ADMIN ---
         JLabel lblLogo = new JLabel();
-        lblLogo.setAlignmentX(Component.CENTER_ALIGNMENT);
-        lblLogo.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         ImageIcon originalIcon = new ImageIcon("Proyecto/assets/img/adminIcon.png");
         Image scaledImage = originalIcon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
         lblLogo.setIcon(new ImageIcon(scaledImage));
+        lblLogo.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 
+        // Doble clic: volver al login de usuario
         lblLogo.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -43,57 +57,67 @@ public class AdminLogin extends JFrame {
             }
         });
 
-        // Cargar fuente
+        leftPanel.add(lblLogo);
+
+        // --- PANEL DERECHO (FORMULARIO LOGIN ADMIN) ---
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setBackground(new Color(245, 245, 245));
+        rightPanel.setBorder(BorderFactory.createEmptyBorder(30, 60, 30, 60));
+
+        // Fuente
         Font montserrat = FontLoader.loadFont("Proyecto/assets/fonts/Montserrat-Regular.ttf", 14);
 
-        // Labels y campos de texto
+        JLabel lblTitle = new JLabel("Acceso de Administrador");
+        lblTitle.setFont(new Font("Montserrat", Font.BOLD, 20));
+        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
         JLabel lblUser = new JLabel("Usuario");
         lblUser.setFont(montserrat);
-        lblUser.setForeground(Color.BLACK);
-
         JTextField txtUsername = new JTextField(15);
         loginGUI.estilizarCampo(txtUsername);
 
-        JLabel lblEmail = new JLabel("Email");
+        JLabel lblEmail = new JLabel("Correo electrónico");
         lblEmail.setFont(montserrat);
-        lblEmail.setForeground(Color.BLACK);
-
         JTextField txtEmail = new JTextField(15);
         loginGUI.estilizarCampo(txtEmail);
 
         JLabel lblPass = new JLabel("Contraseña");
         lblPass.setFont(montserrat);
-        lblPass.setForeground(Color.BLACK);
-
         JPasswordField txtPassword = new JPasswordField(15);
         loginGUI.estilizarCampo(txtPassword);
 
-        // Botón de login
         JButton btnLogin = LoginMenu.getJButton(montserrat, 4, 10, 36);
+        btnLogin.addActionListener(e -> autenticarAdmin());
 
-        // Agregar elementos al panel principal
-        mainPanel.add(lblLogo);
-        mainPanel.add(Box.createVerticalStrut(30));
+        // --- ENSAMBLAR PANEL DERECHO ---
+        rightPanel.add(lblTitle);
+        rightPanel.add(Box.createVerticalStrut(30));
 
-        mainPanel.add(loginGUI.crearFilaCampo(lblUser, txtUsername,207, 224, 250));
-        mainPanel.add(Box.createVerticalStrut(15));
+        rightPanel.add(loginGUI.crearFilaCampo(lblUser, txtUsername));
+        rightPanel.add(Box.createVerticalStrut(15));
 
-        mainPanel.add(loginGUI.crearFilaCampo(lblEmail, txtEmail,207, 224, 250));
-        mainPanel.add(Box.createVerticalStrut(15));
+        rightPanel.add(loginGUI.crearFilaCampo(lblEmail, txtEmail));
+        rightPanel.add(Box.createVerticalStrut(15));
 
-        mainPanel.add(loginGUI.crearFilaCampo(lblPass, txtPassword,207, 224, 250));
-        mainPanel.add(Box.createVerticalStrut(25));
+        rightPanel.add(loginGUI.crearFilaCampo(lblPass, txtPassword));
+        rightPanel.add(Box.createVerticalStrut(25));
 
-        mainPanel.add(btnLogin);
-        mainPanel.add(Box.createVerticalStrut(20));
+        rightPanel.add(btnLogin);
+        rightPanel.add(Box.createVerticalStrut(20));
 
+        // Unir paneles
+        mainPanel.add(leftPanel, BorderLayout.WEST);
+        mainPanel.add(rightPanel, BorderLayout.CENTER);
         add(mainPanel);
     }
 
+    // --- AUTENTICACIÓN (placeholder) ---
     private void autenticarAdmin() {
-        JOptionPane.showMessageDialog(this, "Autenticando usuario (placeholder)");
+        JOptionPane.showMessageDialog(this, "Autenticando administrador (placeholder)");
     }
 
+    // --- VOLVER AL LOGIN DE USUARIO ---
     private void abrirLoginUsuario() {
         LoginMenu loginGUI = new LoginMenu();
         loginGUI.mostrar();
@@ -101,7 +125,7 @@ public class AdminLogin extends JFrame {
         dispose();
     }
 
-    // Sirve para mostrar la ventana
+    // --- MOSTRAR ---
     public void mostrar() {
         SwingUtilities.invokeLater(() -> setVisible(true));
     }

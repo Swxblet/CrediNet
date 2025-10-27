@@ -3,6 +3,9 @@ package GUI;
 import BL.FontLoader;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -10,29 +13,49 @@ public class LoginMenu extends JFrame {
     private int logoClickCount = 0;
 
     public LoginMenu() {
-        // Configuración base de la ventana
-        setTitle("CrediNet");
-        setSize(420, 520);
+        // Configuración base
+        setTitle("CrediNet | Login");
+        setSize(800, 520);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
         setIconImage(new ImageIcon("Proyecto/assets/img/miniLogo.png").getImage());
 
-        //Panel principal
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBackground(new Color(245, 245, 245));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 60, 30, 60));
+        // Panel principal
+        JPanel mainPanel = new JPanel(new BorderLayout());
 
-        // Imagen del usuario
+        // --- PANEL IZQUIERDO (DEGRADADO AZUL) ---
+        JPanel leftPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(0, 123, 255),
+                        getWidth(), getHeight(),
+                        new Color(0, 82, 204));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        leftPanel.setPreferredSize(new Dimension(320, getHeight()));
+        leftPanel.setLayout(new GridBagLayout());
+
+        // Logo centrado en panel azul
         JLabel lblLogo = new JLabel();
-        lblLogo.setAlignmentX(Component.CENTER_ALIGNMENT);
-        lblLogo.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         ImageIcon originalIcon = new ImageIcon("Proyecto/assets/img/userIcon.png");
         Image scaledImage = originalIcon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
         lblLogo.setIcon(new ImageIcon(scaledImage));
+        leftPanel.add(lblLogo);
 
-        //Sirve para cuando se haga doble clic en la imagen abra el login de administrador
+        // --- PANEL DERECHO (LOGIN) ---
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setBackground(new Color(245, 245, 245));
+        rightPanel.setBorder(BorderFactory.createEmptyBorder(30, 60, 30, 60));
+
+        // Evento doble clic en logo (admin)
+        lblLogo.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         lblLogo.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -43,26 +66,25 @@ public class LoginMenu extends JFrame {
             }
         });
 
-        // Cargar fuente
+        // Fuente
         Font montserrat = FontLoader.loadFont("Proyecto/assets/fonts/Montserrat-Regular.ttf", 14);
 
-        // Labels y campos de texto
-        JLabel lblUser = new JLabel("Usuario");
-        lblUser.setFont(montserrat);
+        JLabel lblTitle = new JLabel("Iniciar sesión");
+        lblTitle.setFont(new Font("Montserrat", Font.BOLD, 20));
+        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        JLabel lblUser = new JLabel("Correo");
+        lblUser.setFont(montserrat);
         JTextField txtUsername = new JTextField(15);
         estilizarCampo(txtUsername);
 
         JLabel lblPass = new JLabel("Contraseña");
         lblPass.setFont(montserrat);
-
         JPasswordField txtPassword = new JPasswordField(15);
         estilizarCampo(txtPassword);
 
-        // Botón de login
         JButton btnLogin = getJButton(montserrat, 33, 150, 243);
 
-        // Botón de registro
         JLabel lblRegister = new JLabel("¿No tienes cuenta? Regístrate aquí");
         lblRegister.setFont(new Font("SansSerif", Font.PLAIN, 13));
         lblRegister.setForeground(new Color(70, 130, 180));
@@ -71,28 +93,48 @@ public class LoginMenu extends JFrame {
         lblRegister.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                abrirRegistro(); // 🔹 placeholder
+                abrirRegistro();
             }
         });
 
-        // Agregar elementos al panel principal
-        mainPanel.add(lblLogo);
-        mainPanel.add(Box.createVerticalStrut(30));
+        // --- Panel que contiene TODO el formulario ---
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBackground(new Color(245, 245, 245));
+        formPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        mainPanel.add(crearFilaCampo(lblUser, txtUsername, 245, 245, 245));
-        mainPanel.add(Box.createVerticalStrut(15));
+// Título centrado
+        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        mainPanel.add(crearFilaCampo(lblPass, txtPassword, 245, 245, 245));
-        mainPanel.add(Box.createVerticalStrut(25));
+// Botón con mismo ancho que los campos
+        btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnLogin.setMaximumSize(new Dimension(250, 40)); // igual que los campos
+        btnLogin.setPreferredSize(new Dimension(250, 40));
 
-        mainPanel.add(btnLogin);
-        mainPanel.add(Box.createVerticalStrut(20));
+// Agregamos en orden
+        formPanel.add(lblTitle);
+        formPanel.add(Box.createVerticalStrut(30));
+        formPanel.add(crearFilaCampo(lblUser, txtUsername));
+        formPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(crearFilaCampo(lblPass, txtPassword));
+        formPanel.add(Box.createVerticalStrut(25));
+        formPanel.add(btnLogin);
+        formPanel.add(Box.createVerticalStrut(20));
+        formPanel.add(lblRegister);
+        lblRegister.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        mainPanel.add(lblRegister);
+// Centrado vertical dentro del panel derecho
+        rightPanel.add(Box.createVerticalGlue());
+        rightPanel.add(formPanel);
+        rightPanel.add(Box.createVerticalGlue());
 
+        // Unir paneles
+        mainPanel.add(leftPanel, BorderLayout.WEST);
+        mainPanel.add(rightPanel, BorderLayout.CENTER);
         add(mainPanel);
     }
 
+    // --- Botón principal ---
     public static JButton getJButton(Font montserrat, int r, int g, int b) {
         JButton btnLogin = new JButton("Iniciar sesión");
         btnLogin.setFocusPainted(false);
@@ -106,26 +148,83 @@ public class LoginMenu extends JFrame {
         return btnLogin;
     }
 
-    // --- METHOD AUXILIAR PARA ALINEAR ETIQUETA + CAMPO ---
-    public JPanel crearFilaCampo(JLabel etiqueta, JTextField campo, int r, int g, int b) {
+    // --- Fila de campo ---
+    public JPanel crearFilaCampo(JLabel etiqueta, JTextField campo) {
+        // Contenedor vertical (etiqueta arriba, campo abajo)
         JPanel fila = new JPanel();
-        fila.setLayout(new BoxLayout(fila, BoxLayout.X_AXIS));
-        fila.setBackground(new Color(r, g, b));
+        fila.setLayout(new BoxLayout(fila, BoxLayout.Y_AXIS));
+        fila.setBackground(new Color(245, 245, 245));
 
-        etiqueta.setPreferredSize(new Dimension(100, 35));
-        etiqueta.setMaximumSize(new Dimension(100, 35));
-        etiqueta.setAlignmentY(Component.CENTER_ALIGNMENT);
+        // ANCHOS UNIFORMES
+        int ancho = 250;            // mismo ancho para label, campo y botón
+        int altoCampo = 35;
 
-        campo.setAlignmentY(Component.CENTER_ALIGNMENT);
+        // Etiqueta CENTRADA y con ancho fijo
+        etiqueta.setAlignmentX(Component.CENTER_ALIGNMENT);
+        etiqueta.setPreferredSize(new Dimension(ancho, etiqueta.getPreferredSize().height));
+        etiqueta.setMaximumSize(new Dimension(ancho, etiqueta.getPreferredSize().height));
+        etiqueta.setHorizontalAlignment(SwingConstants.CENTER);
 
+        // Campo CENTRADO y con ancho fijo
+        campo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        campo.setPreferredSize(new Dimension(ancho, altoCampo));
+        campo.setMaximumSize(new Dimension(ancho, altoCampo));
+
+        // Ensamble
         fila.add(etiqueta);
-        fila.add(Box.createHorizontalStrut(10));
+        fila.add(Box.createVerticalStrut(5));
         fila.add(campo);
 
+        // Centra la fila completa dentro del panel padre
+        fila.setAlignmentX(Component.CENTER_ALIGNMENT);
         return fila;
     }
 
-    // Funciones
+    // --- Borde redondeado (manteniendo compatibilidad con otras clases) ---
+    static class RoundedBorder extends AbstractBorder {
+        private final int radius;
+
+        public RoundedBorder(int radius) {
+            this.radius = radius;
+        }
+
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(200, 200, 200));
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.drawRoundRect(x, y, width - 1, height - 1, radius, radius);
+            g2.dispose();
+        }
+
+        @Override
+        public Insets getBorderInsets(Component c) {
+            return new Insets(6, 10, 6, 10);
+        }
+
+        @Override
+        public Insets getBorderInsets(Component c, Insets insets) {
+            insets.left = 10; insets.right = 10; insets.top = 6; insets.bottom = 6;
+            return insets;
+        }
+    }
+
+    // --- Tu método original, solo mejorado con borde redondeado ---
+    public void estilizarCampo(JTextField campo) {
+        int ancho = 250; // el mismo número que arriba
+        campo.setPreferredSize(new Dimension(ancho, 35));
+        campo.setMaximumSize(new Dimension(ancho, 35));
+        campo.setBorder(new CompoundBorder(
+                new RoundedBorder(12),
+                new EmptyBorder(5, 10, 5, 10)
+        ));
+        campo.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        campo.setOpaque(true);
+        campo.setBackground(Color.WHITE);
+    }
+
+    // --- Auxiliares ---
     private void abrirLoginAdmin() {
         AdminLogin adminLogin = new AdminLogin();
         adminLogin.mostrar();
@@ -138,20 +237,10 @@ public class LoginMenu extends JFrame {
     }
 
     private void abrirRegistro() {
-        JOptionPane.showMessageDialog(this, "Abrir pantalla de registro (placeholder)");
+        new RegisterMenu().mostrar();
+        dispose();
     }
 
-    public void estilizarCampo(JTextField campo) {
-        campo.setPreferredSize(new Dimension(250, 35));
-        campo.setMaximumSize(new Dimension(250, 35));
-        campo.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
-        campo.setFont(new Font("SansSerif", Font.PLAIN, 14));
-    }
-
-    // Sirve para mostrar la ventana
     public void mostrar() {
         SwingUtilities.invokeLater(() -> setVisible(true));
     }
