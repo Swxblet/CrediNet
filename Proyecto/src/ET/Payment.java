@@ -1,8 +1,9 @@
 package ET;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Payment {
+public class Payment implements Serializable {
     private int paymentId;
     private Loan loanId;
     private long amountPaid;

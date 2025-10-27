@@ -1,8 +1,9 @@
 package ET;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class CreditHistory {
+public class CreditHistory implements Serializable {
     private int creditId;
     private Client clientId;
     private Date movementDate;

@@ -1,8 +1,9 @@
 package ET;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Report {
+public class Report implements Serializable {
     private int id;
     private String type;
     private Date generatedDate;

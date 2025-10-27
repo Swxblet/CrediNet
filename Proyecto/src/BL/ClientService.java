@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class ClientService {
     ClientDAL clientDAL = new ClientDAL();
-    public ClientService() {
+    public ClientService() throws Exception {
 
     }
 
@@ -39,7 +39,7 @@ public class ClientService {
         return true;
     }
 
-    public boolean updateClient(String in,Client newClient){
+    public boolean updateClient(String in,Client newClient) throws Exception{
         Client existingClient = searchClientByIN(in);
         if (existingClient != null){
             existingClient.setFullName(newClient.getFullName());

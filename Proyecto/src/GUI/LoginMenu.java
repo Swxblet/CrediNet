@@ -102,11 +102,11 @@ public class LoginMenu extends JFrame {
         btnLogin.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnLogin.setMaximumSize(new Dimension(200, 40));
-        btnLogin.addActionListener(e -> autenticarUsuario()); // 🔹 placeholder
+        btnLogin.addActionListener(e -> autenticarUsuario()); // placeholder
         return btnLogin;
     }
 
-    // --- MÉTODO AUXILIAR PARA ALINEAR ETIQUETA + CAMPO ---
+    // --- METHOD AUXILIAR PARA ALINEAR ETIQUETA + CAMPO ---
     public JPanel crearFilaCampo(JLabel etiqueta, JTextField campo, int r, int g, int b) {
         JPanel fila = new JPanel();
         fila.setLayout(new BoxLayout(fila, BoxLayout.X_AXIS));

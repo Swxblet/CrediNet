@@ -1,6 +1,8 @@
 package ET;
 
-public class Collateral {
+import java.io.Serializable;
+
+public class Collateral implements Serializable {
     private int collateralId;
     private Loan loanId;
     private Operator operatorId;
