@@ -6,10 +6,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-public class LoginGUI extends JFrame {
+public class LoginMenu extends JFrame {
     private int logoClickCount = 0;
 
-    public LoginGUI() {
+    public LoginMenu() {
         // Configuración base de la ventana
         setTitle("CrediNet");
         setSize(420, 520);

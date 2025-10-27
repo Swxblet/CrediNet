@@ -7,7 +7,7 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class AdminLogin extends JFrame {
-    LoginGUI loginGUI = new LoginGUI();
+    LoginMenu loginGUI = new LoginMenu();
     private JTextField txtEmail;
     private int logoClickCount;
     public AdminLogin() {
@@ -69,7 +69,7 @@ public class AdminLogin extends JFrame {
         loginGUI.estilizarCampo(txtPassword);
 
         // Botón de login
-        JButton btnLogin = LoginGUI.getJButton(montserrat, 4, 10, 36);
+        JButton btnLogin = LoginMenu.getJButton(montserrat, 4, 10, 36);
 
         // Agregar elementos al panel principal
         mainPanel.add(lblLogo);
@@ -95,7 +95,7 @@ public class AdminLogin extends JFrame {
     }
 
     private void abrirLoginUsuario() {
-        LoginGUI loginGUI = new LoginGUI();
+        LoginMenu loginGUI = new LoginMenu();
         loginGUI.mostrar();
         logoClickCount = 0;
         dispose();

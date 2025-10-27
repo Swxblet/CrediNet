@@ -2,7 +2,7 @@ package GUI;
 
 public class LoanSystem {
     public static void main(String[] args) {
-        LoginGUI loginGUI = new LoginGUI();
+        LoginMenu loginGUI = new LoginMenu();
         loginGUI.mostrar();
     }
 }
