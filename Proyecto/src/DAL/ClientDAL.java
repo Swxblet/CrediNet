@@ -7,7 +7,7 @@ import java.io.*;
 import java.nio.*;
 
 public class ClientDAL {
-    private static final String DATA_DIR = "DATA";
+    private static final String DATA_DIR = "Proyecto/data/clients";
     private static final String FILE_PATH = DATA_DIR + File.separator + "clients.dat";
 
     private static ArrayList<Client> listOfClients = new ArrayList<>();
