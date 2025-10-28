@@ -33,11 +33,10 @@ public class ClientDAL {
             }
         }
     }
-
-    public void deleteClient(Client clientToDelete){
+    public void deleteClient(Client clientToDelete) throws Exception{
         listOfClients.remove(clientToDelete);
+        saveClient();
     }
-
     private void saveClient() throws Exception {
         try (ObjectOutputStream fos = new ObjectOutputStream(new FileOutputStream(FILE_PATH))) {
             fos.writeObject(listOfClients);
