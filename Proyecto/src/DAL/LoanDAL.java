@@ -12,9 +12,10 @@ public class LoanDAL {
     private static ArrayList<Loan> listOfLoans = new ArrayList<>();
     private static int idCounter = 0;
     public LoanDAL() throws Exception{
-
+        listOfLoans = loadLoan();
     }
     public void insertLoan(Loan loanToInsert) throws Exception{
+        loanToInsert.setLoanId(idCounter++);
         listOfLoans.add(loanToInsert);
         saveLoan();
     }
