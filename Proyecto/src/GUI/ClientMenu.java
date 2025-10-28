@@ -90,7 +90,8 @@ public class ClientMenu {
 
     private void deleteClient() {
         String id = JOptionPane.showInputDialog("Ingrese cédula del cliente a eliminar:");
-        boolean success = clientService.deleteClient(id);
+        boolean success = false;
+        try{success = clientService.deleteClient(id);}catch (Exception e) {JOptionPane.showMessageDialog(null, "Error al eliminar cliente");}
         JOptionPane.showMessageDialog(null, success ? "Cliente eliminado" : "Cliente no encontrado");
     }
 }
