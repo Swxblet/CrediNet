@@ -56,8 +56,8 @@ public class ClientMenu {
         String email = JOptionPane.showInputDialog("Correo:");
         String address = JOptionPane.showInputDialog("Dirección:");
         String phone = JOptionPane.showInputDialog("Teléfono:");
-
-        boolean success = clientService.addClient(id, name, email, address, phone);
+        boolean success = false;
+        try{success = clientService.addClient(id, name, email, address, phone);}catch (Exception e) {JOptionPane.showMessageDialog(null, "Error al crear cliente");}
         JOptionPane.showMessageDialog(null, success ? "Cliente creado con éxito" : "Error al crear cliente");
     }
 

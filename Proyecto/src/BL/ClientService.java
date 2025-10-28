@@ -21,7 +21,7 @@ public class ClientService {
     }
 
     public boolean addClient(String identificationNumber, String fullName, String email,
-                             String address, String phone){
+                             String address, String phone) throws Exception{
         if (ValidationUtils.emptyChecker(fullName) ||
                 ValidationUtils.emailChecker(email) ||
                 ValidationUtils.identificationNumberChecker(identificationNumber) ||

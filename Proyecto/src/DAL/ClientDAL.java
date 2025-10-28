@@ -15,9 +15,10 @@ public class ClientDAL {
     public ClientDAL() throws Exception{
         listOfClients = loadClient();
     }
-    public void insertClient(Client clientToInsert){
+    public void insertClient(Client clientToInsert) throws Exception{
         clientToInsert.setClientId(idCounter++);
         listOfClients.add(clientToInsert);
+        saveClient();
     }
 
     public ArrayList<Client> getClients(){
