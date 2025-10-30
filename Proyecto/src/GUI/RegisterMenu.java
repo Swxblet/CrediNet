@@ -1,5 +1,6 @@
 package GUI;
 
+import BL.ClientService;
 import BL.FontLoader;
 import BL.ValidationUtils;
 
@@ -8,8 +9,17 @@ import javax.swing.border.AbstractBorder;
 import java.awt.*;
 
 public class RegisterMenu extends JFrame {
+    ClientService clientService;
 
-    public RegisterMenu() {
+    {
+        try {
+            clientService = new ClientService();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error al iniciar el registro");
+        }
+    }
+
+    public RegisterMenu(){
         setTitle("CrediNet | Registro");
         setSize(850, 520);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -59,17 +69,19 @@ public class RegisterMenu extends JFrame {
         JPanel fieldsPanel = new JPanel(new GridLayout(4, 2, 15, 15));
         fieldsPanel.setBackground(Color.WHITE);
 
-        JTextField txtFullName = createRoundedField();
-        JTextField txtId = createRoundedField();
-        JTextField txtPhone = createRoundedField();
-        JTextField txtAddress = createRoundedField();
-        JTextField txtEmail = createRoundedField();
+        JTextField txtFullName = createRoundedFieldJText();
+        JTextField txtId = createRoundedFieldJText();
+        JTextField txtPhone = createRoundedFieldJText();
+        JTextField txtAddress = createRoundedFieldJText();
+        JTextField txtEmail = createRoundedFieldJText();
+        JPasswordField txtPassword = createRoundedFieldJPassword();
 
         fieldsPanel.add(labeledField("Nombre completo", txtFullName, montserrat));
         fieldsPanel.add(labeledField("Identificación", txtId, montserrat));
         fieldsPanel.add(labeledField("Teléfono", txtPhone, montserrat));
         fieldsPanel.add(labeledField("Dirección", txtAddress, montserrat));
         fieldsPanel.add(labeledField("Correo electrónico", txtEmail, montserrat));
+        fieldsPanel.add(labeledField("Contraseña", txtPassword, montserrat));
 
         rightPanel.add(fieldsPanel);
         rightPanel.add(Box.createVerticalStrut(20));
@@ -103,6 +115,11 @@ public class RegisterMenu extends JFrame {
                     ValidationUtils.isValidAddress(txtAddress.getText())) {
 
                 JOptionPane.showMessageDialog(this, "Cliente registrado correctamente.");
+                try{
+                    clientService.addClient(txtId.getText(), txtFullName.getText(), txtEmail.getText(), txtAddress.getText(), txtPhone.getText(), txtPassword.getText());
+                }catch(Exception ex){
+                    JOptionPane.showMessageDialog(this, "Error al registrar el cliente.");
+                }
                 dispose();
                 new LoginMenu().mostrar();
             } else {
@@ -136,8 +153,16 @@ public class RegisterMenu extends JFrame {
     }
 
     // --- TEXTFIELDS REDONDEADOS ---
-    private JTextField createRoundedField() {
+    private JTextField createRoundedFieldJText() {
         JTextField field = new JTextField();
+        field.setBorder(new RoundedBorder(10));
+        field.setPreferredSize(new Dimension(180, 35));
+        field.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        return field;
+    }
+
+    private JPasswordField createRoundedFieldJPassword() {
+        JPasswordField field = new JPasswordField();
         field.setBorder(new RoundedBorder(10));
         field.setPreferredSize(new Dimension(180, 35));
         field.setFont(new Font("SansSerif", Font.PLAIN, 13));

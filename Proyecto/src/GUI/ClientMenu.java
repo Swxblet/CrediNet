@@ -56,8 +56,9 @@ public class ClientMenu {
         String email = JOptionPane.showInputDialog("Correo:");
         String address = JOptionPane.showInputDialog("Dirección:");
         String phone = JOptionPane.showInputDialog("Teléfono:");
+        String password = JOptionPane.showInputDialog("Password:");
         boolean success = false;
-        try{success = clientService.addClient(id, name, email, address, phone);}catch (Exception e) {JOptionPane.showMessageDialog(null, "Error al crear cliente");}
+        try{success = clientService.addClient(id, name, email, address, phone, password);}catch (Exception e) {JOptionPane.showMessageDialog(null, "Error al crear cliente");}
         JOptionPane.showMessageDialog(null, success ? "Cliente creado con éxito" : "Error al crear cliente");
     }
 
@@ -79,8 +80,9 @@ public class ClientMenu {
             String newEmail = JOptionPane.showInputDialog("Nuevo correo:");
             String newAddress = JOptionPane.showInputDialog("Nueva dirección:");
             String newPhone = JOptionPane.showInputDialog("Nuevo teléfono:");
+            String newPassword = JOptionPane.showInputDialog("Nuevo password:");
 
-            Client updated = new Client(0, id, newName, newAddress, newPhone, newEmail);
+            Client updated = new Client(0, id, newName, newAddress, newPhone, newEmail, newPassword);
             boolean success = clientService.updateClient(id, updated);
             JOptionPane.showMessageDialog(null, success ? "Cliente actualizado" : "Cliente no encontrado");
         }catch (Exception e) {

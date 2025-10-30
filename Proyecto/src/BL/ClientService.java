@@ -21,12 +21,13 @@ public class ClientService {
     }
 
     public boolean addClient(String identificationNumber, String fullName, String email,
-                             String address, String phone) throws Exception{
+                             String address, String phone, String password) throws Exception{
         if (ValidationUtils.emptyChecker(fullName) ||
                 ValidationUtils.emailChecker(email) ||
                 ValidationUtils.identificationNumberChecker(identificationNumber) ||
                 ValidationUtils.emptyChecker(address) ||
-                ValidationUtils.emptyChecker(phone)){
+                ValidationUtils.emptyChecker(phone)||
+                ValidationUtils.emptyChecker(password)){
             return false;
         }
 
@@ -34,7 +35,7 @@ public class ClientService {
             return false;
         }
 
-        Client newClient1 = new Client(0, identificationNumber, fullName, address, phone, email);
+        Client newClient1 = new Client(0, identificationNumber, fullName, address, phone, email, password);
         clientDAL.insertClient(newClient1);
         return true;
     }
