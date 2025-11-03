@@ -11,6 +11,9 @@ import java.awt.event.*;
 
 public class LoginMenu extends JFrame {
     private int logoClickCount = 0;
+    protected String userName;
+    protected String password;
+    //TODO Agregar la función de validación para que al iniciar sesión se haga un fetch del usuario que inicio sesión
 
     public LoginMenu() {
         // Configuración base
