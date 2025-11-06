@@ -1,5 +1,6 @@
 package GUI;
 
+import BL.ClientService;
 import BL.FontLoader;
 
 import javax.swing.*;
@@ -11,11 +12,17 @@ import java.awt.event.*;
 
 public class LoginMenu extends JFrame {
     private int logoClickCount = 0;
-    protected String userName;
-    protected String password;
-    //TODO Agregar la función de validación para que al iniciar sesión se haga un fetch del usuario que inicio sesión
+    private static String mailSearch;
+    private static String passwordSearch;
+    static ClientService clientService;
 
     public LoginMenu() {
+        try {
+            clientService = new ClientService();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error al iniciar el login");
+        }
+
         // Configuración base
         setTitle("CrediNet | Login");
         setSize(800, 520);
@@ -52,7 +59,7 @@ public class LoginMenu extends JFrame {
         leftPanel.setPreferredSize(new Dimension(320, getHeight()));
         leftPanel.setLayout(new GridBagLayout());
 
-// --- LOGO CENTRADO SOBRE EL GIF ---
+        // --- LOGO CENTRADO SOBRE EL GIF ---
         JLabel lblLogo = new JLabel();
         ImageIcon originalIcon = new ImageIcon("Proyecto/assets/img/userIcon.png");
         Image scaledImage = originalIcon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
@@ -96,7 +103,7 @@ public class LoginMenu extends JFrame {
         JPasswordField txtPassword = new JPasswordField(15);
         estilizarCampo(txtPassword);
 
-        JButton btnLogin = getJButton(montserrat, 33, 150, 243);
+        JButton btnLogin = getJButton(montserrat, 33, 150, 243, txtUsername, txtPassword);
 
         JLabel lblRegister = new JLabel("¿No tienes cuenta? Regístrate aquí");
         lblRegister.setFont(new Font("SansSerif", Font.PLAIN, 13));
@@ -116,15 +123,15 @@ public class LoginMenu extends JFrame {
         formPanel.setBackground(new Color(245, 245, 245));
         formPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-// Título centrado
+        // Título centrado
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-// Botón con mismo ancho que los campos
+        // Botón con mismo ancho que los campos
         btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnLogin.setMaximumSize(new Dimension(250, 40)); // igual que los campos
         btnLogin.setPreferredSize(new Dimension(250, 40));
 
-// Agregamos en orden
+        // Agregamos en orden
         formPanel.add(lblTitle);
         formPanel.add(Box.createVerticalStrut(30));
         formPanel.add(crearFilaCampo(lblUser, txtUsername));
@@ -136,7 +143,7 @@ public class LoginMenu extends JFrame {
         formPanel.add(lblRegister);
         lblRegister.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-// Centrado vertical dentro del panel derecho
+        // Centrado vertical dentro del panel derecho
         rightPanel.add(Box.createVerticalGlue());
         rightPanel.add(formPanel);
         rightPanel.add(Box.createVerticalGlue());
@@ -148,7 +155,7 @@ public class LoginMenu extends JFrame {
     }
 
     // --- Botón principal ---
-    public static JButton getJButton(Font montserrat, int r, int g, int b) {
+    public JButton getJButton(Font montserrat, int r, int g, int b, JTextField txtUsername, JPasswordField txtPassword) {
         JButton btnLogin = new JButton("Iniciar sesión");
         btnLogin.setFocusPainted(false);
         btnLogin.setBackground(new Color(r, g, b));
@@ -157,7 +164,16 @@ public class LoginMenu extends JFrame {
         btnLogin.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnLogin.setMaximumSize(new Dimension(200, 40));
-        btnLogin.addActionListener(e -> autenticarUsuario()); // placeholder
+
+        btnLogin.addActionListener(e -> {
+            // 🔹 Extraer texto de los campos
+            mailSearch = txtUsername.getText();
+            passwordSearch = new String(txtPassword.getPassword());
+
+            // 🔹 Llamar a la lógica de autenticación
+            autenticarUsuario();
+        });
+
         return btnLogin;
     }
 
@@ -245,8 +261,13 @@ public class LoginMenu extends JFrame {
         dispose();
     }
 
-    private static void autenticarUsuario() {
-        JOptionPane.showMessageDialog(null, "Autenticando usuario (placeholder)");
+    private void autenticarUsuario() {
+        if (clientService.searchClientToVerify(mailSearch, passwordSearch) != null){
+            new ClientMenu().mostrar();
+            dispose();
+        }else{
+            JOptionPane.showMessageDialog(null, "Credenciales no válidas");
+        }
     }
 
     private void abrirRegistro() {

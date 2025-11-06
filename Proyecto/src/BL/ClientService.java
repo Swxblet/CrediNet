@@ -20,6 +20,15 @@ public class ClientService {
         return null;
     }
 
+    public Client searchClientToVerify(String email, String password){
+        for(Client eachClient : clientDAL.getClients()){
+            if(eachClient.getEmail().equals(email) && eachClient.getPassword().equals(password)){
+                return eachClient;
+            }
+        }
+        return null;
+    }
+
     public boolean addClient(String identificationNumber, String fullName, String email,
                              String address, String phone, String password) throws Exception{
         if (ValidationUtils.emptyChecker(fullName) ||

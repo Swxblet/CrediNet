@@ -87,8 +87,7 @@ public class AdminLogin extends JFrame {
         JPasswordField txtPassword = new JPasswordField(15);
         loginGUI.estilizarCampo(txtPassword);
 
-        JButton btnLogin = LoginMenu.getJButton(montserrat, 4, 10, 36);
-        btnLogin.addActionListener(e -> autenticarAdmin());
+        JButton btnLogin = getAdminButton(montserrat, 4, 10, 36, txtUsername, txtEmail, txtPassword);
 
         // --- ENSAMBLAR PANEL DERECHO ---
         rightPanel.add(lblTitle);
@@ -112,9 +111,12 @@ public class AdminLogin extends JFrame {
         add(mainPanel);
     }
 
-    // --- AUTENTICACIÓN (placeholder) ---
-    private void autenticarAdmin() {
-        JOptionPane.showMessageDialog(this, "Autenticando administrador (placeholder)");
+    private void autenticarAdmin(String username, String email, String password) {
+        System.out.println("Admin user: " + username);
+        System.out.println("Email: " + email);
+        System.out.println("Password: " + password);
+
+        // TODO: aquí conectas con tu BL:
     }
 
     // --- VOLVER AL LOGIN DE USUARIO ---
@@ -123,6 +125,33 @@ public class AdminLogin extends JFrame {
         loginGUI.mostrar();
         logoClickCount = 0;
         dispose();
+    }
+
+    // --- Botón principal de Admin ---
+    private JButton getAdminButton(Font montserrat, int r, int g, int b,
+                                   JTextField txtUsername,
+                                   JTextField txtEmail,
+                                   JPasswordField txtPassword) {
+        JButton btnLogin = new JButton("Iniciar sesión");
+        btnLogin.setFocusPainted(false);
+        btnLogin.setBackground(new Color(r, g, b));
+        btnLogin.setForeground(Color.WHITE);
+        btnLogin.setFont(montserrat);
+        btnLogin.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnLogin.setMaximumSize(new Dimension(200, 40));
+
+        btnLogin.addActionListener(e -> {
+            // 🔹 Extraemos los valores de los campos
+            String username = txtUsername.getText();
+            String email = txtEmail.getText();
+            String password = new String(txtPassword.getPassword());
+
+            // 🔹 Llamamos al método que valida al admin
+            autenticarAdmin(username, email, password);
+        });
+
+        return btnLogin;
     }
 
     // --- MOSTRAR ---

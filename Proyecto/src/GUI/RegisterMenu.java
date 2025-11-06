@@ -102,6 +102,7 @@ public class RegisterMenu extends JFrame {
         btnRegister.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         btnRegister.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        //Registrar Cliente
         btnRegister.addActionListener(e -> {
             if (!chkConfirm.isSelected()) {
                 JOptionPane.showMessageDialog(this, "Debes confirmar la información.");
