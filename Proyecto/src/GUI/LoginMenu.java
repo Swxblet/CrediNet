@@ -2,6 +2,11 @@ package GUI;
 
 import BL.ClientService;
 import BL.FontLoader;
+import BL.LoanService;
+import BL.PaymentService;
+import BL.CreditHistoryService;
+//import BL.NotificationService; // cuando la tengas
+import ET.Client;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
@@ -12,15 +17,18 @@ import java.awt.event.*;
 
 public class LoginMenu extends JFrame {
     private int logoClickCount = 0;
-    private static String mailSearch;
-    private static String passwordSearch;
     static ClientService clientService;
 
     public LoginMenu() {
         try {
             clientService = new ClientService();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error al iniciar el login");
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Error al iniciar el login",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
 
         // Configuración base
@@ -52,7 +60,6 @@ public class LoginMenu extends JFrame {
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
 
-                // Dibujar el GIF sobre el degradado (centrado y ajustado al tamaño del panel)
                 g.drawImage(gif.getImage(), 0, 0, getWidth(), getHeight(), this);
             }
         };
@@ -64,7 +71,7 @@ public class LoginMenu extends JFrame {
         ImageIcon originalIcon = new ImageIcon("Proyecto/assets/img/userIcon.png");
         Image scaledImage = originalIcon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
         lblLogo.setIcon(new ImageIcon(scaledImage));
-        lblLogo.setOpaque(false); // para mantener transparencia sobre el GIF
+        lblLogo.setOpaque(false);
 
         leftPanel.add(lblLogo);
 
@@ -123,12 +130,9 @@ public class LoginMenu extends JFrame {
         formPanel.setBackground(new Color(245, 245, 245));
         formPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Título centrado
-        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         // Botón con mismo ancho que los campos
         btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnLogin.setMaximumSize(new Dimension(250, 40)); // igual que los campos
+        btnLogin.setMaximumSize(new Dimension(250, 40));
         btnLogin.setPreferredSize(new Dimension(250, 40));
 
         // Agregamos en orden
@@ -155,7 +159,8 @@ public class LoginMenu extends JFrame {
     }
 
     // --- Botón principal ---
-    public JButton getJButton(Font montserrat, int r, int g, int b, JTextField txtUsername, JPasswordField txtPassword) {
+    public JButton getJButton(Font montserrat, int r, int g, int b,
+                              JTextField txtUsername, JPasswordField txtPassword) {
         JButton btnLogin = new JButton("Iniciar sesión");
         btnLogin.setFocusPainted(false);
         btnLogin.setBackground(new Color(r, g, b));
@@ -166,12 +171,9 @@ public class LoginMenu extends JFrame {
         btnLogin.setMaximumSize(new Dimension(200, 40));
 
         btnLogin.addActionListener(e -> {
-            // 🔹 Extraer texto de los campos
-            mailSearch = txtUsername.getText();
-            passwordSearch = new String(txtPassword.getPassword());
-
-            // 🔹 Llamar a la lógica de autenticación
-            autenticarUsuario();
+            String email = txtUsername.getText().trim();
+            String password = new String(txtPassword.getPassword());
+            autenticarUsuario(email, password);
         });
 
         return btnLogin;
@@ -179,37 +181,31 @@ public class LoginMenu extends JFrame {
 
     // --- Fila de campo ---
     public JPanel crearFilaCampo(JLabel etiqueta, JTextField campo) {
-        // Contenedor vertical (etiqueta arriba, campo abajo)
         JPanel fila = new JPanel();
         fila.setLayout(new BoxLayout(fila, BoxLayout.Y_AXIS));
         fila.setBackground(new Color(245, 245, 245));
 
-        // ANCHOS UNIFORMES
-        int ancho = 250;            // mismo ancho para label, campo y botón
+        int ancho = 250;
         int altoCampo = 35;
 
-        // Etiqueta CENTRADA y con ancho fijo
         etiqueta.setAlignmentX(Component.CENTER_ALIGNMENT);
         etiqueta.setPreferredSize(new Dimension(ancho, etiqueta.getPreferredSize().height));
         etiqueta.setMaximumSize(new Dimension(ancho, etiqueta.getPreferredSize().height));
         etiqueta.setHorizontalAlignment(SwingConstants.CENTER);
 
-        // Campo CENTRADO y con ancho fijo
         campo.setAlignmentX(Component.CENTER_ALIGNMENT);
         campo.setPreferredSize(new Dimension(ancho, altoCampo));
         campo.setMaximumSize(new Dimension(ancho, altoCampo));
 
-        // Ensamble
         fila.add(etiqueta);
         fila.add(Box.createVerticalStrut(5));
         fila.add(campo);
 
-        // Centra la fila completa dentro del panel padre
         fila.setAlignmentX(Component.CENTER_ALIGNMENT);
         return fila;
     }
 
-    // --- Borde redondeado (manteniendo compatibilidad con otras clases) ---
+    // --- Borde redondeado ---
     static class RoundedBorder extends AbstractBorder {
         private final int radius;
 
@@ -239,9 +235,8 @@ public class LoginMenu extends JFrame {
         }
     }
 
-    // --- Tu método original, solo mejorado con borde redondeado ---
     public void estilizarCampo(JTextField campo) {
-        int ancho = 250; // el mismo número que arriba
+        int ancho = 250;
         campo.setPreferredSize(new Dimension(ancho, 35));
         campo.setMaximumSize(new Dimension(ancho, 35));
         campo.setBorder(new CompoundBorder(
@@ -261,12 +256,47 @@ public class LoginMenu extends JFrame {
         dispose();
     }
 
-    private void autenticarUsuario() {
-        if (clientService.searchClientToVerify(mailSearch, passwordSearch) != null){
-            new ClientMenu().mostrar();
+    // 🔹 Autenticación REAL usando ClientService y abriendo ClientMenu
+    private void autenticarUsuario(String email, String password) {
+        if (clientService == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Servicio de clientes no disponible.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        Client cliente = clientService.searchClientToVerify(email, password);
+        if (cliente == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Credenciales no válidas",
+                    "Error de autenticación",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            LoanService loanService = new LoanService();
+            PaymentService paymentService = new PaymentService();
+            CreditHistoryService creditHistoryService = new CreditHistoryService();
+            //NotificationService notificationService = new NotificationService(); // cuando la tengas
+
+            ClientMenu clientMenu = new ClientMenu(
+                    cliente,
+                    loanService,
+                    paymentService,
+                    creditHistoryService
+                    //notificationService
+            );
+            clientMenu.mostrar();
             dispose();
-        }else{
-            JOptionPane.showMessageDialog(null, "Credenciales no válidas");
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error al cargar los datos del usuario.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 

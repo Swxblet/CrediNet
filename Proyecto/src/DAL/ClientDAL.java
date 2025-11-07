@@ -12,6 +12,7 @@ public class ClientDAL {
 
     private static ArrayList<Client> listOfClients = new ArrayList<>();
     private static int idCounter = 0;
+
     public ClientDAL() throws Exception{
         listOfClients = loadClient();
     }

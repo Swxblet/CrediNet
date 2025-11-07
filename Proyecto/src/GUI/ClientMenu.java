@@ -1,6 +1,13 @@
 package GUI;
 
 import BL.FontLoader;
+import BL.LoanService;
+import BL.PaymentService;
+import BL.CreditHistoryService;
+//import BL.NotificationService;
+import ET.Client;
+import ET.Loan;
+import ET.Payment;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
@@ -11,6 +18,10 @@ import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class ClientMenu extends JFrame {
     // ======= Paleta =======
@@ -30,24 +41,46 @@ public class ClientMenu extends JFrame {
     private final Font fUI    = safeFont(15, Font.PLAIN);
     private final Font fSmall = safeFont(13, Font.PLAIN);
 
-    // Contenido principal (dashboard vs solicitud)
+    // ======= Servicios / usuario logueado =======
+    private final Client client;
+    private final LoanService loanService;
+    private final PaymentService paymentService;
+    private final CreditHistoryService creditHistoryService;
+    //private final NotificationService notificationService;
+
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy");
+
+    // Contenido principal (dashboard vs solicitud vs mis préstamos vs pagos)
     private JPanel mainContent;
     private CardLayout mainContentLayout;
 
     // Dashboard responsivo (2x2 / 1 columna)
     private JPanel responsiveContent;
 
-    // Referencias a ítems de navegación para resaltarlos
+    // Referencias a ítems de navegación
     private RoundedPanel navDashboard;
     private RoundedPanel navSolicitar;
+    private RoundedPanel navMisPrestamos;
+    private RoundedPanel navPagos;
 
-    public ClientMenu() {
+    // ========= NUEVO CONSTRUCTOR: recibe cliente + servicios =========
+    public ClientMenu(Client client,
+                      LoanService loanService,
+                      PaymentService paymentService,
+                      CreditHistoryService creditHistoryService
+                      //NotificationService notificationService
+                      ) {
+        this.client = client;
+        this.loanService = loanService;
+        this.paymentService = paymentService;
+        this.creditHistoryService = creditHistoryService;
+        //this.notificationService = notificationService;
+
         setTitle("CrediNet | Dashboard");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 720);
         setLocationRelativeTo(null);
         setIconImage(new ImageIcon("Proyecto/assets/img/miniLogo.png").getImage());
-        setResizable(false);
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(BG_APP);
@@ -68,15 +101,22 @@ public class ClientMenu extends JFrame {
         JPanel dashboard = buildDashboardContent();
         // Pantalla dedicada: Solicitar préstamo
         JPanel loanScreen = buildLoanRequestScreen();
+        // Pantalla dedicada: Mis préstamos
+        JPanel loansListScreen = buildLoansScreen();
+        // Pantalla dedicada: Pagos
+        JPanel paymentsScreen = buildPaymentsScreen();
 
         mainContent.add(dashboard, "dashboard");
         mainContent.add(loanScreen, "loan");
+        mainContent.add(loansListScreen, "loans");
+        mainContent.add(paymentsScreen, "payments");
 
         center.add(mainContent, BorderLayout.CENTER);
         root.add(center, BorderLayout.CENTER);
 
         setContentPane(root);
 
+        // Ventana maximizada al iniciar
         setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         // Cambiar layout del dashboard según tamaño
@@ -105,9 +145,21 @@ public class ClientMenu extends JFrame {
         setActiveNav("loan");
     }
 
+    private void mostrarMisPrestamos() {
+        mainContentLayout.show(mainContent, "loans");
+        setActiveNav("loans");
+    }
+
+    private void mostrarPagos() {
+        mainContentLayout.show(mainContent, "payments");
+        setActiveNav("payments");
+    }
+
     private void setActiveNav(String key) {
         setNavActive(navDashboard, "dashboard".equals(key));
         setNavActive(navSolicitar, "loan".equals(key));
+        setNavActive(navMisPrestamos, "loans".equals(key));
+        setNavActive(navPagos, "payments".equals(key));
     }
 
     private void setNavActive(RoundedPanel nav, boolean active) {
@@ -166,16 +218,18 @@ public class ClientMenu extends JFrame {
         side.add(navDashboard);
         side.add(Box.createVerticalStrut(14));
 
-        side.add(simpleNavItem("Mis Préstamos", false));
+        navMisPrestamos = createNavItem("Mis préstamos", false, this::mostrarMisPrestamos);
+        side.add(navMisPrestamos);
         side.add(Box.createVerticalStrut(14));
 
-        // Nuevo acceso rápido: Solicitar préstamo
         navSolicitar = createNavItem("Solicitar préstamo", false, this::mostrarPantallaSolicitud);
         side.add(navSolicitar);
         side.add(Box.createVerticalStrut(14));
 
-        side.add(simpleNavItem("Pagos", false));
+        navPagos = createNavItem("Pagos", false, this::mostrarPagos);
+        side.add(navPagos);
         side.add(Box.createVerticalStrut(14));
+
         side.add(simpleNavItem("Estados de Cuenta", false));
         side.add(Box.createVerticalStrut(14));
         side.add(simpleNavItem("Perfil", false));
@@ -205,10 +259,9 @@ public class ClientMenu extends JFrame {
         return wrap;
     }
 
-    // NavItem solo visual (sin acción de cambio de pantalla aún)
+    // NavItem solo visual (placeholder)
     private RoundedPanel simpleNavItem(String text, boolean active) {
         return createNavItem(text, active, () -> {
-            // Aquí en el futuro puedes abrir otras pantallas
             JOptionPane.showMessageDialog(this,
                     "La sección \"" + text + "\" aún no está implementada.");
         });
@@ -248,7 +301,7 @@ public class ClientMenu extends JFrame {
         JPanel dot = new RoundedPanel(15, BLUE_1);
         dot.setPreferredSize(new Dimension(26, 26));
 
-        JLabel hi = new JLabel("Hola, Madeline");
+        JLabel hi = new JLabel("Hola, " + getClientFirstName());
         hi.setFont(fSmall);
         hi.setForeground(new Color(22, 40, 77));
 
@@ -260,7 +313,7 @@ public class ClientMenu extends JFrame {
         chipInner.add(hi);
 
         chip.add(chipInner);
-        chip.setPreferredSize(new Dimension(190, 40));
+        chip.setPreferredSize(new Dimension(210, 40));
 
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         rightPanel.setOpaque(false);
@@ -271,6 +324,14 @@ public class ClientMenu extends JFrame {
         top.add(rightPanel, BorderLayout.EAST);
 
         return top;
+    }
+
+    private String getClientFirstName() {
+        if (client == null || client.getFullName() == null || client.getFullName().isEmpty()) {
+            return "cliente";
+        }
+        String[] parts = client.getFullName().trim().split("\\s+");
+        return parts[0];
     }
 
     // ======================
@@ -310,7 +371,7 @@ public class ClientMenu extends JFrame {
         c.gridx = 0; c.gridy = 1;
         grid.add(buildCardNotificaciones(), c);
 
-        // Card 4: Mis préstamos
+        // Card 4: Mis préstamos (resumen)
         c.gridx = 1; c.gridy = 1;
         grid.add(buildCardTablaPrestamos(), c);
 
@@ -340,7 +401,7 @@ public class ClientMenu extends JFrame {
         return sp;
     }
 
-    // ---------- Card: Préstamo activo ----------
+    // ---------- Card: Préstamo activo (DATOS REALES) ----------
     private JComponent buildCardPrestamoActivo() {
         CardPanel card = new CardPanel();
 
@@ -354,34 +415,72 @@ public class ClientMenu extends JFrame {
         title.setForeground(TEXT_DARK);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel saldo = new JLabel("Saldo: ₡ 1 250 000");
-        saldo.setFont(fH3);
-        saldo.setForeground(new Color(22, 40, 77));
-        saldo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel saldoLabel = new JLabel();
+        saldoLabel.setFont(fH3);
+        saldoLabel.setForeground(new Color(22, 40, 77));
+        saldoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel prox = new JLabel("Próxima cuota: ₡ 85 300 — 05 Dic 2025");
-        prox.setFont(fUI);
-        prox.setForeground(TEXT_MUTED);
-        prox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel infoLabel = new JLabel();
+        infoLabel.setFont(fUI);
+        infoLabel.setForeground(TEXT_MUTED);
+        infoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        ChipLabel chip = new ChipLabel("VIGENTE", new Color(232, 248, 237), new Color(39, 125, 65));
-        chip.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Obtener préstamo activo real
+        Loan activeLoan = null;
+        if (loanService != null && client != null) {
+            activeLoan = loanService.getActiveLoanForClient(client.getClientId());
+        }
 
-        JButton pagar = primaryButton("Pagar hoy");
-        pagar.setPreferredSize(new Dimension(180, 44));
-
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        footer.setOpaque(false);
-        footer.setAlignmentX(Component.LEFT_ALIGNMENT);
-        footer.add(pagar);
+        if (activeLoan != null) {
+            long remaining = getRemainingBalance(activeLoan);
+            saldoLabel.setText("Saldo pendiente: ₡ " + formatMoney(remaining));
+            infoLabel.setText("Monto original: ₡ " + formatMoney(activeLoan.getAmount()) +
+                    " · Vence: " + formatDate(activeLoan.getEndDate()));
+        } else {
+            saldoLabel.setText("No tienes préstamos activos actualmente.");
+            infoLabel.setText("Cuando se apruebe un préstamo, verás su detalle aquí.");
+        }
 
         content.add(title);
         content.add(Box.createVerticalStrut(12));
-        content.add(saldo);
+        content.add(saldoLabel);
         content.add(Box.createVerticalStrut(4));
-        content.add(prox);
+        content.add(infoLabel);
         content.add(Box.createVerticalStrut(12));
-        content.add(chip);
+
+        // Chip de estado solo si hay préstamo activo
+        if (activeLoan != null) {
+            Status st = statusFromString(activeLoan.getStatus());
+            ChipLabel chip = new ChipLabel(st.text, st.bg, st.fg);
+            chip.setAlignmentX(Component.LEFT_ALIGNMENT);
+            chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            chip.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    mostrarMisPrestamos();
+                }
+            });
+            content.add(chip);
+            content.add(Box.createVerticalStrut(12));
+        }
+
+        // Botón pagar
+        JButton pagar = primaryButton("Ir a pagos");
+        pagar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        pagar.setPreferredSize(new Dimension(160, 40));
+        pagar.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        pagar.addActionListener(e -> mostrarPagos());
+        if (activeLoan == null) {
+            pagar.setEnabled(false);
+        }
+
+        JPanel footer = new JPanel();
+        footer.setOpaque(false);
+        footer.setLayout(new BoxLayout(footer, BoxLayout.X_AXIS));
+        footer.setAlignmentX(Component.LEFT_ALIGNMENT);
+        footer.add(Box.createHorizontalGlue());
+        footer.add(pagar);
+
         content.add(Box.createVerticalGlue());
         content.add(footer);
 
@@ -398,7 +497,6 @@ public class ClientMenu extends JFrame {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        // Título y descripción
         JLabel title = new JLabel("Solicita un nuevo préstamo");
         title.setFont(fH2);
         title.setForeground(TEXT_DARK);
@@ -414,7 +512,7 @@ public class ClientMenu extends JFrame {
         content.add(subtitle);
         content.add(Box.createVerticalStrut(16));
 
-        // ====== Sección: Monto solicitado ======
+        // ====== Monto ======
         JPanel montoPanel = new JPanel();
         montoPanel.setOpaque(false);
         montoPanel.setLayout(new BoxLayout(montoPanel, BoxLayout.Y_AXIS));
@@ -441,7 +539,6 @@ public class ClientMenu extends JFrame {
         montoInputRow.add(colSymbol);
         montoInputRow.add(txtMonto);
 
-        // Chips rápidos de monto
         JPanel quickAmounts = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         quickAmounts.setOpaque(false);
         quickAmounts.setBorder(new EmptyBorder(6, 0, 0, 0));
@@ -468,7 +565,7 @@ public class ClientMenu extends JFrame {
         content.add(montoPanel);
         content.add(Box.createVerticalStrut(16));
 
-        // ====== Sección: Plazo ======
+        // ====== Plazo ======
         JPanel plazoPanel = new JPanel();
         plazoPanel.setOpaque(false);
         plazoPanel.setLayout(new BoxLayout(plazoPanel, BoxLayout.Y_AXIS));
@@ -478,13 +575,12 @@ public class ClientMenu extends JFrame {
         lblPlazo.setFont(fUI);
         lblPlazo.setForeground(TEXT_MUTED);
 
-        // Slider 1–360
         JSlider sPlazo = new JSlider(1, 360, 24);
         sPlazo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         sPlazo.setAlignmentX(Component.LEFT_ALIGNMENT);
         sPlazo.setPaintTicks(true);
         sPlazo.setPaintTrack(true);
-        sPlazo.setMajorTickSpacing(59);  // aprox cada año
+        sPlazo.setMajorTickSpacing(59);
         sPlazo.setMinorTickSpacing(11);
         sPlazo.setPaintLabels(false);
 
@@ -527,7 +623,7 @@ public class ClientMenu extends JFrame {
         lblResPlazo.setFont(fSmall);
         lblResPlazo.setForeground(TEXT_DARK);
 
-        JLabel lblResCuota = new JLabel("Cuota estimada: —");
+        JLabel lblResCuota = new JLabel("Cuota estimada: — (tú pones la lógica)");
         lblResCuota.setFont(fSmall);
         lblResCuota.setForeground(new Color(22, 40, 77));
 
@@ -535,7 +631,6 @@ public class ClientMenu extends JFrame {
         resumen.add(lblResPlazo);
         resumen.add(lblResCuota);
 
-        // sincronizar un poquito el resumen (solo visual)
         sPlazo.addChangeListener(e -> {
             int meses = sPlazo.getValue();
             lblResPlazo.setText("Plazo: " + meses + " mes" + (meses == 1 ? "" : "es"));
@@ -566,17 +661,13 @@ public class ClientMenu extends JFrame {
         footer.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JButton btnContinuar = primaryButton("Continuar solicitud");
-        // deja que el botón crezca o se haga más pequeñito según el espacio
         btnContinuar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         btnContinuar.setPreferredSize(new Dimension(180, 40));
         btnContinuar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnContinuar.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
-        // Abre la pantalla dedicada
         btnContinuar.addActionListener(e -> mostrarPantallaSolicitud());
 
-        // Glue a la izquierda para empujar el botón a la derecha,
-        // pero sin que se corte cuando la ventana es pequeña
         footer.add(Box.createHorizontalGlue());
         footer.add(btnContinuar);
 
@@ -587,6 +678,7 @@ public class ClientMenu extends JFrame {
     }
 
     // ---------- Pantalla dedicada: Solicitar préstamo ----------
+    // (igual que tenías, solo cambié el mensaje del JOptionPane)
     private JPanel buildLoanRequestScreen() {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(BG_APP);
@@ -637,7 +729,6 @@ public class ClientMenu extends JFrame {
         lblDatos.setForeground(TEXT_DARK);
         lblDatos.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Monto
         JLabel lblMonto = new JLabel("Monto solicitado");
         lblMonto.setFont(fSmall);
         lblMonto.setForeground(TEXT_MUTED);
@@ -659,7 +750,6 @@ public class ClientMenu extends JFrame {
         montoRow.add(colSymbol);
         montoRow.add(txtMonto);
 
-        // Plazo
         JLabel lblPlazo = new JLabel("Plazo (meses)");
         lblPlazo.setFont(fSmall);
         lblPlazo.setForeground(TEXT_MUTED);
@@ -669,7 +759,6 @@ public class ClientMenu extends JFrame {
         spPlazo.setFont(fUI);
         spPlazo.setMaximumSize(new Dimension(120, 32));
 
-        // Tipo de préstamo
         JLabel lblTipo = new JLabel("Tipo de préstamo");
         lblTipo.setFont(fSmall);
         lblTipo.setForeground(TEXT_MUTED);
@@ -685,7 +774,6 @@ public class ClientMenu extends JFrame {
         cbTipo.setFont(fUI);
         cbTipo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
 
-        // Destino
         JLabel lblDestino = new JLabel("Destino del crédito (opcional)");
         lblDestino.setFont(fSmall);
         lblDestino.setForeground(TEXT_MUTED);
@@ -737,34 +825,18 @@ public class ClientMenu extends JFrame {
         resumen.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel rMonto = new JLabel("Monto: —");
-        rMonto.setFont(fSmall);
-        rMonto.setForeground(TEXT_DARK);
-
         JLabel rPlazo = new JLabel("Plazo: —");
-        rPlazo.setFont(fSmall);
-        rPlazo.setForeground(TEXT_DARK);
-
         JLabel rTipo = new JLabel("Tipo: —");
-        rTipo.setFont(fSmall);
-        rTipo.setForeground(TEXT_DARK);
-
         JLabel rCuota = new JLabel("Cuota estimada: —");
-        rCuota.setFont(fSmall);
-        rCuota.setForeground(new Color(22, 40, 77));
-
         JLabel rTotal = new JLabel("Monto total estimado: —");
-        rTotal.setFont(fSmall);
-        rTotal.setForeground(new Color(22, 40, 77));
 
-        resumen.add(rMonto);
-        resumen.add(Box.createVerticalStrut(4));
-        resumen.add(rPlazo);
-        resumen.add(Box.createVerticalStrut(4));
-        resumen.add(rTipo);
-        resumen.add(Box.createVerticalStrut(8));
-        resumen.add(rCuota);
-        resumen.add(Box.createVerticalStrut(4));
-        resumen.add(rTotal);
+        for (JLabel l : new JLabel[]{rMonto, rPlazo, rTipo, rCuota, rTotal}) {
+            l.setFont(fSmall);
+            l.setForeground(TEXT_DARK);
+            l.setAlignmentX(Component.LEFT_ALIGNMENT);
+            resumen.add(l);
+            resumen.add(Box.createVerticalStrut(4));
+        }
 
         JLabel helper = new JLabel("<html><span style='color:#666666;'>Estos valores son estimados. La aprobación y tasa final dependen de la evaluación crediticia.</span></html>");
         helper.setFont(fSmall);
@@ -797,10 +869,9 @@ public class ClientMenu extends JFrame {
         JButton btnEnviar = primaryButton("Enviar solicitud");
         btnEnviar.setPreferredSize(new Dimension(180, 38));
         btnEnviar.addActionListener(e -> {
-            // Aquí conectas con tu lógica real
             JOptionPane.showMessageDialog(this,
-                    "Aquí enviarías la solicitud real al backend / base de datos.\n" +
-                            "Tú te encargas de la lógica, yo solo de que se vea bonito 😌");
+                    "Aquí creas un Loan real usando LoanService y lo guardas en loans.dat.\n" +
+                            "Tú te encargas de la lógica de negocio, yo de que la pantalla esté lista 💙");
         });
 
         footer.add(btnCancelar);
@@ -818,7 +889,389 @@ public class ClientMenu extends JFrame {
         return root;
     }
 
-    // ---------- Card: Notificaciones ----------
+    // ---------- Pantalla dedicada: Mis préstamos (DATOS REALES) ----------
+    private JPanel buildLoansScreen() {
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG_APP);
+        root.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JPanel wrap = new JPanel(new GridBagLayout());
+        wrap.setOpaque(false);
+
+        CardPanel card = new CardPanel();
+        card.setLayout(new BorderLayout());
+
+        // Header
+        JPanel header = new JPanel();
+        header.setOpaque(false);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBorder(new EmptyBorder(16, 16, 0, 16));
+
+        JLabel title = new JLabel("Mis préstamos");
+        title.setFont(fH2);
+        title.setForeground(TEXT_DARK);
+
+        JLabel subtitle = new JLabel("Consulta el estado de tus préstamos, cuotas pendientes y detalles.");
+        subtitle.setFont(fSmall);
+        subtitle.setForeground(TEXT_MUTED);
+
+        header.add(title);
+        header.add(Box.createVerticalStrut(4));
+        header.add(subtitle);
+
+        card.add(header, BorderLayout.NORTH);
+
+        // Body: 2 columnas
+        JPanel body = new JPanel(new GridBagLayout());
+        body.setOpaque(false);
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(0, 16, 16, 16);
+        c.fill = GridBagConstraints.BOTH;
+
+        // ---- Obtener préstamos reales ----
+        List<Loan> loans = new ArrayList<>();
+        if (loanService != null && client != null) {
+            loans = loanService.getLoansByClientId(client.getClientId());
+        }
+        final List<Loan> loansForClient = loans;
+
+        // Columna izquierda: tabla de préstamos
+        String[] cols = {"ID", "Monto", "Saldo", "Estado"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+            @Override public Class<?> getColumnClass(int columnIndex) {
+                return (columnIndex == 3) ? Status.class : String.class;
+            }
+        };
+
+        for (Loan loan : loansForClient) {
+            long remaining = getRemainingBalance(loan);
+            Status st = statusFromString(loan.getStatus());
+            model.addRow(new Object[]{
+                    "#" + loan.getLoanId(),
+                    "₡ " + formatMoney(loan.getAmount()),
+                    "₡ " + formatMoney(remaining),
+                    st
+            });
+        }
+
+        JTable table = new JTable(model);
+        table.setRowHeight(34);
+        table.setFont(fUI);
+        table.getTableHeader().setFont(fSmall);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setFillsViewportHeight(true);
+        table.setBackground(Color.WHITE);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getColumnModel().getColumn(0).setPreferredWidth(70);
+        table.getColumnModel().getColumn(1).setPreferredWidth(130);
+        table.getColumnModel().getColumn(2).setPreferredWidth(130);
+        table.getColumnModel().getColumn(3).setPreferredWidth(120);
+        table.getColumnModel().getColumn(3).setCellRenderer(new StatusRenderer());
+
+        JScrollPane spTable = new JScrollPane(table);
+        spTable.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        JPanel left = new JPanel(new BorderLayout());
+        left.setOpaque(false);
+        left.add(spTable, BorderLayout.CENTER);
+
+        c.gridx = 0; c.gridy = 0; c.weightx = 0.55; c.weighty = 1.0;
+        body.add(left, c);
+
+        // Columna derecha: detalle
+        JPanel right = new JPanel();
+        right.setOpaque(false);
+        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
+        right.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        JLabel lblDetalle = new JLabel("Detalle del préstamo");
+        lblDetalle.setFont(fUI);
+        lblDetalle.setForeground(TEXT_DARK);
+        lblDetalle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        RoundedPanel detailCard = new RoundedPanel(16, new Color(248, 249, 252));
+        detailCard.setLayout(new BoxLayout(detailCard, BoxLayout.Y_AXIS));
+        detailCard.setBorder(new EmptyBorder(14, 14, 14, 14));
+        detailCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel dId = new JLabel("ID: —");
+        JLabel dMonto = new JLabel("Monto: —");
+        JLabel dSaldo = new JLabel("Saldo: —");
+        JLabel dEstado = new JLabel("Estado: —");
+        JLabel dPlazo = new JLabel("Plazo: —");
+        JLabel dInteres = new JLabel("Tasa interés: —");
+        JLabel dVencimiento = new JLabel("Fecha de vencimiento: —");
+
+        for (JLabel l : new JLabel[]{dId, dMonto, dSaldo, dEstado, dPlazo, dInteres, dVencimiento}) {
+            l.setFont(fSmall);
+            l.setForeground(TEXT_DARK);
+            l.setAlignmentX(Component.LEFT_ALIGNMENT);
+            detailCard.add(l);
+            detailCard.add(Box.createVerticalStrut(4));
+        }
+
+        JPanel actions = new JPanel();
+        actions.setOpaque(false);
+        actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
+        actions.setAlignmentX(Component.LEFT_ALIGNMENT);
+        actions.add(Box.createHorizontalGlue());
+
+        JButton btnPagarCuota = primaryButton("Ir a pagos");
+        btnPagarCuota.setPreferredSize(new Dimension(150, 36));
+        btnPagarCuota.setMaximumSize(new Dimension(200, 36));
+        btnPagarCuota.addActionListener(e -> mostrarPagos());
+
+        JButton btnVerPlan = new JButton("Ver plan de pagos");
+        btnVerPlan.setFocusPainted(false);
+        btnVerPlan.setBackground(new Color(240, 240, 240));
+        btnVerPlan.setForeground(TEXT_DARK);
+        btnVerPlan.setFont(fSmall);
+        btnVerPlan.setBorder(new EmptyBorder(8, 14, 8, 14));
+        btnVerPlan.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this,
+                    "Aquí podrías mostrar un plan de pagos (tabla de amortización) calculado desde el Loan.");
+        });
+
+        actions.add(btnVerPlan);
+        actions.add(Box.createHorizontalStrut(8));
+        actions.add(btnPagarCuota);
+
+        right.add(lblDetalle);
+        right.add(Box.createVerticalStrut(12));
+        right.add(detailCard);
+        right.add(Box.createVerticalStrut(12));
+        right.add(actions);
+        right.add(Box.createVerticalGlue());
+
+        c.gridx = 1; c.gridy = 0; c.weightx = 0.45; c.weighty = 1.0;
+        body.add(right, c);
+
+        // Actualizar detalle al seleccionar préstamo
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int row = table.getSelectedRow();
+                if (row >= 0 && row < loansForClient.size()) {
+                    Loan loan = loansForClient.get(row);
+                    long remaining = getRemainingBalance(loan);
+                    Status st = statusFromString(loan.getStatus());
+
+                    dId.setText("ID: #" + loan.getLoanId());
+                    dMonto.setText("Monto: ₡ " + formatMoney(loan.getAmount()));
+                    dSaldo.setText("Saldo: ₡ " + formatMoney(remaining));
+                    dEstado.setText("Estado: " + st.text);
+                    dPlazo.setText("Plazo: " + loan.getTermMonths() + " meses");
+                    dInteres.setText("Tasa interés: " + loan.getInterestRate() + " %");
+                    dVencimiento.setText("Fecha de vencimiento: " + formatDate(loan.getEndDate()));
+                }
+            }
+        });
+
+        if (table.getRowCount() > 0) {
+            table.setRowSelectionInterval(0, 0);
+        }
+
+        card.add(body, BorderLayout.CENTER);
+
+        GridBagConstraints wrapperC = new GridBagConstraints();
+        wrapperC.gridx = 0; wrapperC.gridy = 0;
+        wrapperC.weightx = 1.0; wrapperC.weighty = 1.0;
+        wrapperC.fill = GridBagConstraints.BOTH;
+        wrap.add(card, wrapperC);
+
+        root.add(wrap, BorderLayout.CENTER);
+        return root;
+    }
+
+    // ---------- Pantalla dedicada: Pagos (usa Payment reales) ----------
+    private JPanel buildPaymentsScreen() {
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG_APP);
+        root.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JPanel wrap = new JPanel(new GridBagLayout());
+        wrap.setOpaque(false);
+
+        CardPanel card = new CardPanel();
+        card.setLayout(new BorderLayout());
+
+        // Header
+        JPanel header = new JPanel();
+        header.setOpaque(false);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBorder(new EmptyBorder(16, 16, 0, 16));
+
+        JLabel title = new JLabel("Pagos");
+        title.setFont(fH2);
+        title.setForeground(TEXT_DARK);
+
+        JLabel subtitle = new JLabel("Consulta el historial de pagos realizados y el resumen de tus movimientos.");
+        subtitle.setFont(fSmall);
+        subtitle.setForeground(TEXT_MUTED);
+
+        header.add(title);
+        header.add(Box.createVerticalStrut(4));
+        header.add(subtitle);
+
+        card.add(header, BorderLayout.NORTH);
+
+        // Body: 2 columnas
+        JPanel body = new JPanel(new GridBagLayout());
+        body.setOpaque(false);
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(0, 16, 16, 16);
+        c.fill = GridBagConstraints.BOTH;
+
+        // ---- Datos reales de pagos ----
+        List<Payment> payments = new ArrayList<>();
+        if (paymentService != null && client != null) {
+            payments = paymentService.getPaymentsForClient(client.getClientId());
+        }
+
+        // Columna izquierda: historial de pagos
+        String[] cols = {"Fecha", "Préstamo", "Monto", "Estado"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        long totalPagado = 0;
+        Payment ultimoPago = null;
+
+        for (Payment p : payments) {
+            String fecha = formatDate(p.getPaymentDate());
+            String loanCode = (p.getLoanId() != null)
+                    ? "#" + p.getLoanId().getLoanId()
+                    : "—";
+            long amount = p.getAmountPaid();
+            totalPagado += amount;
+            String monto = "₡ " + formatMoney(amount);
+
+            model.addRow(new Object[]{fecha, loanCode, monto, "Pagado"});
+
+            if (ultimoPago == null || (p.getPaymentDate() != null &&
+                    p.getPaymentDate().after(ultimoPago.getPaymentDate()))) {
+                ultimoPago = p;
+            }
+        }
+
+        JTable table = new JTable(model);
+        table.setRowHeight(34);
+        table.setFont(fUI);
+        table.getTableHeader().setFont(fSmall);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setFillsViewportHeight(true);
+        table.setBackground(Color.WHITE);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        JScrollPane spTable = new JScrollPane(table);
+        spTable.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        JPanel left = new JPanel(new BorderLayout());
+        left.setOpaque(false);
+
+        JLabel lblSub = new JLabel("Historial de pagos");
+        lblSub.setFont(fUI);
+        lblSub.setForeground(TEXT_DARK);
+        lblSub.setBorder(new EmptyBorder(8, 8, 0, 8));
+
+        left.add(lblSub, BorderLayout.NORTH);
+        left.add(spTable, BorderLayout.CENTER);
+
+        c.gridx = 0; c.gridy = 0; c.weightx = 0.6; c.weighty = 1.0;
+        body.add(left, c);
+
+        // Columna derecha: resumen de pagos
+        JPanel right = new JPanel();
+        right.setOpaque(false);
+        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
+        right.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        JLabel lblResumen = new JLabel("Resumen de tus pagos");
+        lblResumen.setFont(fUI);
+        lblResumen.setForeground(TEXT_DARK);
+        lblResumen.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        RoundedPanel resumen = new RoundedPanel(16, new Color(248, 249, 252));
+        resumen.setLayout(new BoxLayout(resumen, BoxLayout.Y_AXIS));
+        resumen.setBorder(new EmptyBorder(14, 14, 14, 14));
+        resumen.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel rCantidadPagos = new JLabel("Cantidad de pagos: " + payments.size());
+        JLabel rTotalPagado = new JLabel("Total pagado: ₡ " + formatMoney(totalPagado));
+        String ultimoTexto;
+        if (ultimoPago != null) {
+            ultimoTexto = "Último pago: ₡ " + formatMoney(ultimoPago.getAmountPaid()) +
+                    " — " + formatDate(ultimoPago.getPaymentDate());
+        } else {
+            ultimoTexto = "Último pago: —";
+        }
+        JLabel rUltimoPago = new JLabel(ultimoTexto);
+
+        for (JLabel l : new JLabel[]{rCantidadPagos, rTotalPagado, rUltimoPago}) {
+            l.setFont(fSmall);
+            l.setForeground(TEXT_DARK);
+            l.setAlignmentX(Component.LEFT_ALIGNMENT);
+            resumen.add(l);
+            resumen.add(Box.createVerticalStrut(4));
+        }
+
+        JLabel helper = new JLabel("<html><span style='color:#666666;'>Los montos mostrados corresponden a pagos ya realizados.</span></html>");
+        helper.setFont(fSmall);
+        helper.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Acciones
+        JPanel actions = new JPanel();
+        actions.setOpaque(false);
+        actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
+        actions.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton btnVerPrestamos = primaryButton("Ver préstamos");
+        btnVerPrestamos.setPreferredSize(new Dimension(180, 38));
+        btnVerPrestamos.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        btnVerPrestamos.addActionListener(e -> mostrarMisPrestamos());
+
+        JButton btnNuevoPago = new JButton("Registrar pago manual");
+        btnNuevoPago.setFocusPainted(false);
+        btnNuevoPago.setBackground(new Color(240, 240, 240));
+        btnNuevoPago.setForeground(TEXT_DARK);
+        btnNuevoPago.setFont(fSmall);
+        btnNuevoPago.setBorder(new EmptyBorder(8, 14, 8, 14));
+        btnNuevoPago.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this,
+                    "Aquí podrías abrir un formulario para registrar un pago nuevo y guardarlo en payments.dat.");
+        });
+
+        actions.add(btnNuevoPago);
+        actions.add(Box.createHorizontalStrut(8));
+        actions.add(btnVerPrestamos);
+
+        right.add(lblResumen);
+        right.add(Box.createVerticalStrut(12));
+        right.add(resumen);
+        right.add(Box.createVerticalStrut(12));
+        right.add(helper);
+        right.add(Box.createVerticalStrut(16));
+        right.add(actions);
+        right.add(Box.createVerticalGlue());
+
+        c.gridx = 1; c.gridy = 0; c.weightx = 0.4; c.weighty = 1.0;
+        body.add(right, c);
+
+        card.add(body, BorderLayout.CENTER);
+
+        GridBagConstraints wrapperC = new GridBagConstraints();
+        wrapperC.gridx = 0; wrapperC.gridy = 0;
+        wrapperC.weightx = 1.0; wrapperC.weighty = 1.0;
+        wrapperC.fill = GridBagConstraints.BOTH;
+        wrap.add(card, wrapperC);
+
+        root.add(wrap, BorderLayout.CENTER);
+        return root;
+    }
+
+    // ---------- Card: Notificaciones (de momento mock) ----------
     private JComponent buildCardNotificaciones() {
         CardPanel card = new CardPanel();
 
@@ -837,7 +1290,7 @@ public class ClientMenu extends JFrame {
         content.add(notifRow("Documento pendiente de firma", "Hoy",
                 new Color(255, 243, 224), new Color(120, 98, 43)));
         content.add(Box.createVerticalStrut(8));
-        content.add(notifRow("Pago programado en 3 días", "Hace 1 h",
+        content.add(notifRow("Pago registrado recientemente", "Hace 1 h",
                 new Color(232, 248, 237), new Color(39, 125, 65)));
         content.add(Box.createVerticalStrut(8));
         content.add(notifRow("Nuevo mensaje del operador", "Ayer",
@@ -869,7 +1322,7 @@ public class ClientMenu extends JFrame {
         return row;
     }
 
-    // ---------- Card: Tabla Mis préstamos ----------
+    // ---------- Card: Tabla Mis préstamos (dashboard, top 3) ----------
     private JComponent buildCardTablaPrestamos() {
         CardPanel card = new CardPanel();
         card.setLayout(new BorderLayout(0, 8));
@@ -881,21 +1334,32 @@ public class ClientMenu extends JFrame {
         card.add(title, BorderLayout.NORTH);
 
         String[] cols = {"ID", "Monto", "Saldo", "Estado"};
-        Object[][] data = {
-                {"#1024", "₡ 1 500 000", "₡ 1 250 000",
-                        new Status("VIGENTE", new Color(232, 248, 237), new Color(39, 125, 65))},
-                {"#0988", "₡   800 000", "₡   210 000",
-                        new Status("LIQUIDADO", new Color(227, 242, 253), new Color(30, 136, 229))},
-                {"#0901", "₡   500 000", "₡    85 300",
-                        new Status("ATRASO", new Color(255, 235, 238), new Color(176, 0, 32))}
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, cols) {
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
             @Override public Class<?> getColumnClass(int columnIndex) {
                 return (columnIndex == 3) ? Status.class : String.class;
             }
         };
+
+        List<Loan> loans = new ArrayList<>();
+        if (loanService != null && client != null) {
+            loans = loanService.getLoansByClientId(client.getClientId());
+        }
+
+        int count = 0;
+        for (Loan loan : loans) {
+            long remaining = getRemainingBalance(loan);
+            Status st = statusFromString(loan.getStatus());
+            model.addRow(new Object[]{
+                    "#" + loan.getLoanId(),
+                    "₡ " + formatMoney(loan.getAmount()),
+                    "₡ " + formatMoney(remaining),
+                    st
+            });
+            count++;
+            if (count >= 3) break; // solo los primeros 3 en el dashboard
+        }
+
         JTable table = new JTable(model);
         table.setRowHeight(34);
         table.setFont(fUI);
@@ -905,11 +1369,9 @@ public class ClientMenu extends JFrame {
         table.setFillsViewportHeight(true);
         table.setBackground(Color.WHITE);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.getColumnModel().getColumn(0).setPreferredWidth(70);
-        table.getColumnModel().getColumn(1).setPreferredWidth(130);
-        table.getColumnModel().getColumn(2).setPreferredWidth(130);
-        table.getColumnModel().getColumn(3).setPreferredWidth(120);
-        table.getColumnModel().getColumn(3).setCellRenderer(new StatusRenderer());
+        if (table.getColumnCount() > 3) {
+            table.getColumnModel().getColumn(3).setCellRenderer(new StatusRenderer());
+        }
 
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(new EmptyBorder(0, 12, 12, 12));
@@ -938,6 +1400,49 @@ public class ClientMenu extends JFrame {
         }
     }
 
+    private String formatMoney(long value) {
+        return String.format("%,d", value).replace(',', ' ');
+    }
+
+    private String formatDate(Date date) {
+        if (date == null) return "—";
+        return dateFormat.format(date);
+    }
+
+    // Calcula saldo real usando Payments (totalToPay - suma de pagos)
+    private long getRemainingBalance(Loan loan) {
+        if (loan == null) return 0;
+        long totalToPay = loan.getTotalToPay();  // campo de tu entidad
+        long paid = 0;
+        if (paymentService != null) {
+            List<Payment> pagos = paymentService.getPaymentsForLoan(loan.getLoanId());
+            for (Payment p : pagos) {
+                paid += p.getAmountPaid();
+            }
+        }
+        long remaining = totalToPay - paid;
+        return Math.max(remaining, 0);
+    }
+
+    private Status statusFromString(String status) {
+        if (status == null) {
+            return new Status("DESCONOCIDO", new Color(240, 240, 240), new Color(90, 90, 90));
+        }
+        String s = status.toUpperCase();
+        if (s.contains("VIGENTE")) {
+            return new Status("VIGENTE",
+                    new Color(232, 248, 237), new Color(39, 125, 65));
+        } else if (s.contains("LIQUIDADO")) {
+            return new Status("LIQUIDADO",
+                    new Color(227, 242, 253), new Color(30, 136, 229));
+        } else if (s.contains("ATRASO") || s.contains("MORA")) {
+            return new Status("ATRASO",
+                    new Color(255, 235, 238), new Color(176, 0, 32));
+        }
+        return new Status(status,
+                new Color(240, 240, 240), new Color(90, 90, 90));
+    }
+
     // Panel con degradado vertical
     static class GradientPanel extends JPanel {
         private final Color c1, c2;
@@ -946,7 +1451,6 @@ public class ClientMenu extends JFrame {
         }
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             GradientPaint gp = new GradientPaint(0, 0, c1, 0, getHeight(), c2);
             g2.setPaint(gp);
             g2.fillRect(0, 0, getWidth(), getHeight());
@@ -979,7 +1483,6 @@ public class ClientMenu extends JFrame {
         CompoundLineBorder(Color color) { this.color = color; }
         @Override public void paintBorder(Component c, Graphics g, int x, int y, int w, int h) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(color);
             g2.drawRoundRect(x, y, w - 1, h - 1, 40, 40);
             g2.dispose();
@@ -997,7 +1500,6 @@ public class ClientMenu extends JFrame {
             int arc = 18;
             int w = getWidth(), h = getHeight();
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             g2.setColor(new Color(0, 0, 0, 60));
             g2.fill(new RoundRectangle2D.Float(6, 10, w - 12, h - 12, arc + 6, arc + 6));
@@ -1018,10 +1520,10 @@ public class ClientMenu extends JFrame {
         private final Color bg, fg;
         ChipLabel(String text, Color bg, Color fg) {
             this.text = text; this.bg = bg; this.fg = fg;
+            setPreferredSize(new Dimension(110, 28));
         }
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(bg);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
             g2.setColor(fg);
@@ -1031,7 +1533,6 @@ public class ClientMenu extends JFrame {
             g2.drawString(text, 12, ty);
             g2.dispose();
         }
-        @Override public Dimension getPreferredSize() { return new Dimension(110, 28); }
     }
 
     // Status object + renderer para la tabla
@@ -1064,7 +1565,6 @@ public class ClientMenu extends JFrame {
         }
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(getBackground());
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
             super.paintComponent(g);

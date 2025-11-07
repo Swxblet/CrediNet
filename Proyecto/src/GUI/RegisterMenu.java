@@ -117,7 +117,7 @@ public class RegisterMenu extends JFrame {
 
                 JOptionPane.showMessageDialog(this, "Cliente registrado correctamente.");
                 try{
-                    clientService.addClient(txtId.getText(), txtFullName.getText(), txtEmail.getText(), txtAddress.getText(), txtPhone.getText(), txtPassword.getText());
+                    clientService.addClient(txtFullName.getText(), txtId.getText(), txtEmail.getText(), txtAddress.getText(), txtPhone.getText(), txtPassword.getText());
                 }catch(Exception ex){
                     JOptionPane.showMessageDialog(this, "Error al registrar el cliente.");
                 }
