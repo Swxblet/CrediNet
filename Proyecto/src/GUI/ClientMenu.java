@@ -627,7 +627,7 @@ public class ClientMenu extends JFrame {
         lblResPlazo.setFont(fSmall);
         lblResPlazo.setForeground(TEXT_DARK);
 
-        JLabel lblResCuota = new JLabel("Cuota estimada: — (tú pones la lógica)");
+        JLabel lblResCuota = new JLabel("Cuota estimada: —");
         lblResCuota.setFont(fSmall);
         lblResCuota.setForeground(new Color(22, 40, 77));
 
@@ -653,6 +653,8 @@ public class ClientMenu extends JFrame {
             @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
             @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
         });
+
+
 
         resumen.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(resumen);

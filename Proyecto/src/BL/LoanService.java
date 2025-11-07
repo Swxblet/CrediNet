@@ -50,4 +50,9 @@ public class LoanService {
     public void deleteLoan(Loan loan) throws Exception {
         loanDAL.deleteLoan(loan);
     }
+
+    public double calculateMonthlyPayment(double loanAmount, double interestRate, int numberOfYears) {
+        return loanAmount * (interestRate / 100) * Math.pow(1 + (interestRate / 100), numberOfYears * 12);
+    }
+    //TODO Hacer una función que me ayude a calcular el total de vista previa del valor de un préstamo
 }
