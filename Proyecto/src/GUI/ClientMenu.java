@@ -298,8 +298,12 @@ public class ClientMenu extends JFrame {
         chip.setBorder(new CompoundLineBorder(new Color(210, 225, 255)));
         chip.setLayout(new GridBagLayout());
 
-        JPanel dot = new RoundedPanel(15, BLUE_1);
+        JLabel dot = new JLabel();
         dot.setPreferredSize(new Dimension(26, 26));
+        ImageIcon dotIcon = new ImageIcon("Proyecto/assets/img/userIcon.png");
+        Image scaledImage = dotIcon.getImage().getScaledInstance(26, 26, Image.SCALE_SMOOTH);
+        dot.setIcon(new ImageIcon(scaledImage));
+        dot.setVisible(true);
 
         JLabel hi = new JLabel("Hola, " + getClientFirstName());
         hi.setFont(fSmall);
