@@ -142,7 +142,6 @@ public class ClientMenu extends JFrame {
         // Mostrar dashboard por defecto
         mostrarDashboard();
 
-// Notificación de bienvenida (solo 1 vez por sesión)
         if (!bienvenidaMostrada && notificationCenter != null) {
             notificationCenter.info(
                     "Bienvenido/a, " + getClientFirstName(),
@@ -989,7 +988,7 @@ public class ClientMenu extends JFrame {
             try {
                 long monto = Long.parseLong(txtMonto.getText().trim());
                 int meses = (Integer) spPlazo.getValue();
-                short tasaAnual = 24;
+                short tasaAnual = 24; // o la tasa que definas
 
                 Loan nuevo = loanService.crearPrestamoParaCliente(
                         client,
@@ -1000,21 +999,36 @@ public class ClientMenu extends JFrame {
                 );
 
                 if (notificationCenter != null) {
-                    notificationCenter.success(
-                            "Solicitud enviada",
-                            "Tu solicitud de préstamo #" + nuevo.getLoanId() + " se registró correctamente."
+                    notificationCenter.info(
+                            "Préstamo creado",
+                            "Se registró el préstamo #" + nuevo.getLoanId() +
+                                    " por ₡ " + formatMoney(nuevo.getAmount())
                     );
                 }
 
                 JOptionPane.showMessageDialog(this,
                         "Solicitud registrada. ID préstamo: #" + nuevo.getLoanId());
-                mostrarDashboard();
+
+                ClientMenu refreshed = new ClientMenu(
+                        client,
+                        loanService,
+                        paymentService,
+                        creditHistoryService,
+                        notificationCenter
+                );
+                refreshed.mostrar();
+                dispose();
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Monto inválido. Usa solo números.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this,
-                        "Error al crear el préstamo: " + ex.getMessage());
+                        "Error al crear el préstamo: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-
 
         footer.add(btnCancelar);
         footer.add(btnEnviar);
