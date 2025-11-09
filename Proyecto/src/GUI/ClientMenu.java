@@ -328,6 +328,11 @@ public class ClientMenu extends JFrame {
         search.setBackground(new Color(248, 248, 248));
         search.setPreferredSize(new Dimension(200, 40));
 
+        search.addActionListener(e -> {
+            String query = search.getText();
+            performGlobalSearch(query);
+        });
+
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.setOpaque(false);
         centerPanel.setBorder(new EmptyBorder(0, 20, 0, 20));
@@ -368,6 +373,7 @@ public class ClientMenu extends JFrame {
 
         return top;
     }
+
 
     private String getClientFirstName() {
         if (client == null || client.getFullName() == null || client.getFullName().isEmpty()) {
@@ -2499,6 +2505,267 @@ public class ClientMenu extends JFrame {
         p.add(field);
 
         return p;
+    }
+
+    // ====================== BÚSQUEDA GLOBAL ======================
+
+    private void performGlobalSearch(String rawQuery) {
+        if (rawQuery == null) rawQuery = "";
+        String query = rawQuery.trim();
+
+        // Ignorar placeholder
+        if (query.isEmpty() || "Buscar en tu cuenta...".equalsIgnoreCase(query)) {
+            JOptionPane.showMessageDialog(this,
+                    "Escribe algo en la barra de búsqueda para buscar en tus préstamos y pagos.",
+                    "Búsqueda vacía", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String qLower = query.toLowerCase();
+
+        List<Loan> loansFound = searchLoans(qLower);
+        List<Payment> paymentsFound = searchPayments(qLower);
+
+        showSearchResults(loansFound, paymentsFound, query);
+    }
+
+    private List<Loan> searchLoans(String qLower) {
+        List<Loan> result = new ArrayList<>();
+        if (loanService == null || client == null) return result;
+
+        List<Loan> loans = loanService.getLoansByClientId(client.getClientId());
+        for (Loan loan : loans) {
+            if (matchesLoan(loan, qLower)) {
+                result.add(loan);
+            }
+        }
+        return result;
+    }
+
+    private List<Payment> searchPayments(String qLower) {
+        List<Payment> result = new ArrayList<>();
+        if (paymentService == null || client == null) return result;
+
+        List<Payment> payments = paymentService.getPaymentsForClient(client.getClientId());
+        for (Payment p : payments) {
+            if (matchesPayment(p, qLower)) {
+                result.add(p);
+            }
+        }
+        return result;
+    }
+
+    private boolean matchesLoan(Loan loan, String qLower) {
+        if (loan == null) return false;
+
+        String id = String.valueOf(loan.getLoanId());
+        String code = "#" + id;
+
+        String amountRaw = String.valueOf(loan.getAmount());
+        String amountFmt = formatMoney(loan.getAmount());
+
+        String status = loan.getStatus() != null ? loan.getStatus() : "";
+        String startDate = formatDate(loan.getStartDate());
+        String endDate = formatDate(loan.getEndDate());
+
+        String totalRaw = String.valueOf(loan.getTotalToPay());
+        String totalFmt = formatMoney(loan.getTotalToPay());
+
+        // Normalizaciones simples para números con/ sin espacios
+        String qNoSpaces = qLower.replace(" ", "");
+
+        if (code.toLowerCase().contains(qLower)) return true;
+        if (id.contains(qLower)) return true;
+
+        if (amountRaw.contains(qLower)) return true;
+        if (amountFmt.replace(" ", "").toLowerCase().contains(qNoSpaces)) return true;
+
+        if (totalRaw.contains(qLower)) return true;
+        if (totalFmt.replace(" ", "").toLowerCase().contains(qNoSpaces)) return true;
+
+        if (status.toLowerCase().contains(qLower)) return true;
+        if (startDate.toLowerCase().contains(qLower)) return true;
+        if (endDate.toLowerCase().contains(qLower)) return true;
+
+        return false;
+    }
+
+    private boolean matchesPayment(Payment p, String qLower) {
+        if (p == null) return false;
+
+        String id = String.valueOf(p.getPaymentId());
+        String amountRaw = String.valueOf(p.getAmountPaid());
+        String amountFmt = formatMoney(p.getAmountPaid());
+        String date = formatDate(p.getPaymentDate());
+
+        String loanId = "";
+        String loanCode = "";
+        if (p.getLoanId() != null) {
+            loanId = String.valueOf(p.getLoanId().getLoanId());
+            loanCode = "#" + loanId;
+        }
+
+        String qNoSpaces = qLower.replace(" ", "");
+
+        if (id.contains(qLower)) return true;
+
+        if (!loanId.isEmpty() && loanId.contains(qLower)) return true;
+        if (!loanCode.isEmpty() && loanCode.toLowerCase().contains(qLower)) return true;
+
+        if (amountRaw.contains(qLower)) return true;
+        if (amountFmt.replace(" ", "").toLowerCase().contains(qNoSpaces)) return true;
+
+        if (date.toLowerCase().contains(qLower)) return true;
+
+        return false;
+    }
+
+    private void showSearchResults(List<Loan> loans, List<Payment> payments, String query) {
+        JDialog dialog = new JDialog(this, "Resultados de búsqueda", true);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+
+        JPanel content = new JPanel();
+        content.setBorder(new EmptyBorder(12, 12, 12, 12));
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+
+        JLabel header = new JLabel("Resultados para: \"" + query + "\"");
+        header.setFont(fUI.deriveFont(Font.BOLD));
+        header.setForeground(TEXT_DARK);
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(header);
+        content.add(Box.createVerticalStrut(8));
+
+        if (loans.isEmpty() && payments.isEmpty()) {
+            JLabel empty = new JLabel("No se encontraron coincidencias en tus préstamos ni pagos.");
+            empty.setFont(fSmall);
+            empty.setForeground(TEXT_MUTED);
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
+            content.add(empty);
+        } else {
+            if (!loans.isEmpty()) {
+                JLabel secLoans = new JLabel("Préstamos");
+                secLoans.setFont(fSmall.deriveFont(Font.BOLD));
+                secLoans.setForeground(TEXT_DARK);
+                secLoans.setAlignmentX(Component.LEFT_ALIGNMENT);
+                content.add(secLoans);
+                content.add(Box.createVerticalStrut(4));
+
+                for (Loan loan : loans) {
+                    content.add(buildSearchResultLoan(loan));
+                    content.add(Box.createVerticalStrut(6));
+                }
+                content.add(Box.createVerticalStrut(10));
+            }
+
+            if (!payments.isEmpty()) {
+                JLabel secPays = new JLabel("Pagos");
+                secPays.setFont(fSmall.deriveFont(Font.BOLD));
+                secPays.setForeground(TEXT_DARK);
+                secPays.setAlignmentX(Component.LEFT_ALIGNMENT);
+                content.add(secPays);
+                content.add(Box.createVerticalStrut(4));
+
+                for (Payment p : payments) {
+                    content.add(buildSearchResultPayment(p));
+                    content.add(Box.createVerticalStrut(6));
+                }
+            }
+        }
+
+        JScrollPane sp = new JScrollPane(content);
+        sp.setBorder(null);
+        sp.getVerticalScrollBar().setUnitIncrement(16);
+
+        dialog.setContentPane(sp);
+        dialog.setSize(520, 430);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private JComponent buildSearchResultLoan(Loan loan) {
+        RoundedPanel panel = new RoundedPanel(12, Color.WHITE);
+        panel.setBorder(new EmptyBorder(8, 10, 8, 10));
+        panel.setLayout(new BorderLayout(8, 0));
+
+        String titleText = "Préstamo #" + loan.getLoanId() +
+                " · ₡ " + formatMoney(loan.getAmount());
+        JLabel lblTitle = new JLabel(titleText);
+        lblTitle.setFont(fUI);
+        lblTitle.setForeground(TEXT_DARK);
+
+        long remaining = getRemainingBalance(loan);
+        String subtitleText = "Saldo: ₡ " + formatMoney(remaining) +
+                " · Estado: " + (loan.getStatus() != null ? loan.getStatus() : "—");
+        JLabel lblSub = new JLabel(subtitleText);
+        lblSub.setFont(fSmall);
+        lblSub.setForeground(TEXT_MUTED);
+
+        JPanel textPanel = new JPanel();
+        textPanel.setOpaque(false);
+        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.add(lblTitle);
+        textPanel.add(lblSub);
+
+        JButton btn = new JButton("Ver en Mis préstamos");
+        btn.setFont(fSmall);
+        btn.setFocusPainted(false);
+        btn.setBackground(new Color(240, 240, 240));
+        btn.setForeground(TEXT_DARK);
+        btn.setBorder(new EmptyBorder(6, 10, 6, 10));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.addActionListener(e -> {
+            mostrarMisPrestamos();
+            java.awt.Window w = SwingUtilities.getWindowAncestor(panel);
+            if (w != null) w.dispose();
+        });
+
+        panel.add(textPanel, BorderLayout.CENTER);
+        panel.add(btn, BorderLayout.EAST);
+        return panel;
+    }
+
+    private JComponent buildSearchResultPayment(Payment p) {
+        RoundedPanel panel = new RoundedPanel(12, Color.WHITE);
+        panel.setBorder(new EmptyBorder(8, 10, 8, 10));
+        panel.setLayout(new BorderLayout(8, 0));
+
+        String loanCode = "Sin préstamo asociado";
+        if (p.getLoanId() != null) {
+            loanCode = "Préstamo #" + p.getLoanId().getLoanId();
+        }
+
+        String titleText = "Pago ₡ " + formatMoney(p.getAmountPaid());
+        JLabel lblTitle = new JLabel(titleText);
+        lblTitle.setFont(fUI);
+        lblTitle.setForeground(TEXT_DARK);
+
+        String subtitleText = loanCode + " · Fecha: " + formatDate(p.getPaymentDate());
+        JLabel lblSub = new JLabel(subtitleText);
+        lblSub.setFont(fSmall);
+        lblSub.setForeground(TEXT_MUTED);
+
+        JPanel textPanel = new JPanel();
+        textPanel.setOpaque(false);
+        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.add(lblTitle);
+        textPanel.add(lblSub);
+
+        JButton btn = new JButton("Ver en Pagos");
+        btn.setFont(fSmall);
+        btn.setFocusPainted(false);
+        btn.setBackground(new Color(240, 240, 240));
+        btn.setForeground(TEXT_DARK);
+        btn.setBorder(new EmptyBorder(6, 10, 6, 10));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.addActionListener(e -> {
+            mostrarPagos();
+            java.awt.Window w = SwingUtilities.getWindowAncestor(panel);
+            if (w != null) w.dispose();
+        });
+
+        panel.add(textPanel, BorderLayout.CENTER);
+        panel.add(btn, BorderLayout.EAST);
+        return panel;
     }
 
     // ======== Mostrar ========
