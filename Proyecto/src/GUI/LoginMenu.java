@@ -5,7 +5,7 @@ import BL.FontLoader;
 import BL.LoanService;
 import BL.PaymentService;
 import BL.CreditHistoryService;
-//import BL.NotificationService; // cuando la tengas
+import BL.NotificationCenter;
 import ET.Client;
 
 import javax.swing.*;
@@ -279,14 +279,14 @@ public class LoginMenu extends JFrame {
             LoanService loanService = new LoanService();
             PaymentService paymentService = new PaymentService(loanService);
             CreditHistoryService creditHistoryService = new CreditHistoryService();
-            //NotificationService notificationService = new NotificationService(); // cuando la tengas
+            NotificationCenter notificationCenter = new NotificationCenter();
 
             ClientMenu clientMenu = new ClientMenu(
                     cliente,
                     loanService,
                     paymentService,
-                    creditHistoryService
-                    //notificationService
+                    creditHistoryService,
+                    notificationCenter
             );
             clientMenu.mostrar();
             dispose();

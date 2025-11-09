@@ -4,7 +4,7 @@ import BL.FontLoader;
 import BL.LoanService;
 import BL.PaymentService;
 import BL.CreditHistoryService;
-//import BL.NotificationService;
+import BL.NotificationCenter;
 import ET.Client;
 import ET.Loan;
 import ET.Payment;
@@ -46,13 +46,14 @@ public class ClientMenu extends JFrame {
     private final LoanService loanService;
     private final PaymentService paymentService;
     private final CreditHistoryService creditHistoryService;
-    //private final NotificationService notificationService;
+    private final NotificationCenter notificationCenter;
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy");
 
-    // Contenido principal (dashboard vs solicitud vs mis préstamos vs pagos)
     private JPanel mainContent;
     private CardLayout mainContentLayout;
+    private JPanel notificationsListPanel;
+
 
     // Dashboard responsivo (2x2 / 1 columna)
     private JPanel responsiveContent;
@@ -67,14 +68,14 @@ public class ClientMenu extends JFrame {
     public ClientMenu(Client client,
                       LoanService loanService,
                       PaymentService paymentService,
-                      CreditHistoryService creditHistoryService
-                      //NotificationService notificationService
+                      CreditHistoryService creditHistoryService,
+                      NotificationCenter notificationCenter
                       ) {
         this.client = client;
         this.loanService = loanService;
         this.paymentService = paymentService;
         this.creditHistoryService = creditHistoryService;
-        //this.notificationService = notificationService;
+        this.notificationCenter = notificationCenter;
 
         setTitle("CrediNet | Dashboard");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -701,7 +702,16 @@ public class ClientMenu extends JFrame {
         btnContinuar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnContinuar.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
-        btnContinuar.addActionListener(e -> mostrarPantallaSolicitud());
+        btnContinuar.addActionListener(e -> {
+            if (notificationCenter != null) {
+                notificationCenter.info(
+                        "Solicitud de préstamo",
+                        "Estás completando los datos para una nueva solicitud."
+                );
+            }
+            mostrarPantallaSolicitud();
+        });
+
 
         footer.add(Box.createHorizontalGlue());
         footer.add(btnContinuar);
@@ -944,6 +954,13 @@ public class ClientMenu extends JFrame {
                         "VIGENTE"
                 );
 
+                if (notificationCenter != null) {
+                    notificationCenter.success(
+                            "Solicitud enviada",
+                            "Tu solicitud de préstamo #" + nuevo.getLoanId() + " se registró correctamente."
+                    );
+                }
+
                 JOptionPane.showMessageDialog(this,
                         "Solicitud registrada. ID préstamo: #" + nuevo.getLoanId());
                 mostrarDashboard();
@@ -952,6 +969,7 @@ public class ClientMenu extends JFrame {
                         "Error al crear el préstamo: " + ex.getMessage());
             }
         });
+
 
         footer.add(btnCancelar);
         footer.add(btnEnviar);
@@ -1357,7 +1375,6 @@ public class ClientMenu extends JFrame {
         return root;
     }
 
-    // ---------- Card: Notificaciones (de momento mock) ----------
     private JComponent buildCardNotificaciones() {
         CardPanel card = new CardPanel();
 
@@ -1373,17 +1390,28 @@ public class ClientMenu extends JFrame {
 
         content.add(title);
         content.add(Box.createVerticalStrut(12));
-        content.add(notifRow("Documento pendiente de firma", "Hoy",
-                new Color(255, 243, 224), new Color(120, 98, 43)));
-        content.add(Box.createVerticalStrut(8));
-        content.add(notifRow("Pago registrado recientemente", "Hace 1 h",
-                new Color(232, 248, 237), new Color(39, 125, 65)));
-        content.add(Box.createVerticalStrut(8));
-        content.add(notifRow("Nuevo mensaje del operador", "Ayer",
-                new Color(227, 242, 253), new Color(30, 136, 229)));
+
+        // Panel donde se colocan las notificaciones dinámicas
+        notificationsListPanel = new JPanel();
+        notificationsListPanel.setOpaque(false);
+        notificationsListPanel.setLayout(new BoxLayout(notificationsListPanel, BoxLayout.Y_AXIS));
+        notificationsListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        content.add(notificationsListPanel);
         content.add(Box.createVerticalGlue());
 
         card.add(content, BorderLayout.CENTER);
+
+        // Listener para refrescar en vivo
+        if (notificationCenter != null) {
+            notificationCenter.addListener(() ->
+                    SwingUtilities.invokeLater(this::refreshNotificationsUI)
+            );
+        }
+
+        // Primer llenado
+        refreshNotificationsUI();
+
         return card;
     }
 
@@ -1406,6 +1434,53 @@ public class ClientMenu extends JFrame {
         row.add(l, BorderLayout.WEST);
         row.add(r, BorderLayout.EAST);
         return row;
+    }
+
+    private void refreshNotificationsUI() {
+        if (notificationsListPanel == null || notificationCenter == null) return;
+
+        notificationsListPanel.removeAll();
+
+        var list = notificationCenter.getNotifications();
+        if (list.isEmpty()) {
+            JLabel empty = new JLabel("No tienes notificaciones por el momento.");
+            empty.setFont(fSmall);
+            empty.setForeground(TEXT_MUTED);
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
+            notificationsListPanel.add(empty);
+        } else {
+            for (NotificationCenter.Notification n : list) {
+                Color bg;
+                Color fg;
+
+                switch (n.getType()) {
+                    case SUCCESS -> {
+                        bg = new Color(232, 248, 237);
+                        fg = new Color(39, 125, 65);
+                    }
+                    case WARNING -> {
+                        bg = new Color(255, 243, 224);
+                        fg = new Color(120, 98, 43);
+                    }
+                    case ERROR -> {
+                        bg = new Color(255, 235, 238);
+                        fg = new Color(176, 0, 32);
+                    }
+                    default -> { // INFO
+                        bg = new Color(227, 242, 253);
+                        fg = new Color(30, 136, 229);
+                    }
+                }
+
+                // Puedes mostrar título + “hace X tiempo” o solo título
+                JComponent row = notifRow(n.getTitle(), formatDate(n.getWhen()), bg, fg);
+                notificationsListPanel.add(row);
+                notificationsListPanel.add(Box.createVerticalStrut(8));
+            }
+        }
+
+        notificationsListPanel.revalidate();
+        notificationsListPanel.repaint();
     }
 
     // ---------- Card: Tabla Mis préstamos (dashboard, top 3) ----------
@@ -1592,16 +1667,21 @@ public class ClientMenu extends JFrame {
                 long amount = Long.parseLong(txtMonto.getText().trim());
                 Payment pago = paymentService.registrarPago(selectedLoan, amount);
 
+                if (notificationCenter != null) {
+                    notificationCenter.success(
+                            "Pago registrado",
+                            "Se registró un pago de ₡ " + formatMoney(amount) +
+                                    " para el préstamo #" + selectedLoan.getLoanId()
+                    );
+                }
+
                 JOptionPane.showMessageDialog(this,
                         "Pago registrado correctamente.\n" +
                                 "ID pago: #" + pago.getPaymentId(),
                         "Pago registrado", JOptionPane.INFORMATION_MESSAGE);
 
-                // 🔄 Recargar toda la vista para que:
-                // - El card "Préstamo activo" muestre el nuevo saldo
-                // - El card "Mis préstamos" (dashboard) se actualice
-                // - La sección "Mis préstamos" y "Pagos" usen los saldos nuevos
-                ClientMenu nuevo = new ClientMenu(client, loanService, paymentService, creditHistoryService);
+                // 🔄 Recargar toda la vista ...
+                ClientMenu nuevo = new ClientMenu(client, loanService, paymentService, creditHistoryService, notificationCenter);
                 nuevo.mostrar();
                 dispose();
 
@@ -1615,6 +1695,7 @@ public class ClientMenu extends JFrame {
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
+
     }
 
 
