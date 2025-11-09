@@ -322,11 +322,12 @@ public class ClientMenu extends JFrame {
         brandPanel.add(brand);
 
         RoundedTextField search = new RoundedTextField(24);
-        search.setText("Buscar en tu cuenta...");
         search.setFont(fSmall);
-        search.setForeground(new Color(130, 130, 130));
+        search.setForeground(new Color(30, 30, 30));
         search.setBackground(new Color(248, 248, 248));
         search.setPreferredSize(new Dimension(200, 40));
+
+        search.setPlaceholder("Buscar en tu cuenta...");
 
         search.addActionListener(e -> {
             String query = search.getText();
@@ -2445,21 +2446,50 @@ public class ClientMenu extends JFrame {
         }
     }
 
-    // TextField redondeado (topbar search)
     static class RoundedTextField extends JTextField {
         private final int arc;
+        private String placeholder;
+
         RoundedTextField(int arc) {
             this.arc = arc;
             setBorder(new EmptyBorder(8, 14, 8, 14));
             setOpaque(false);
         }
-        @Override protected void paintComponent(Graphics g) {
+
+        public void setPlaceholder(String placeholder) {
+            this.placeholder = placeholder;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+
             g2.setColor(getBackground());
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
-            super.paintComponent(g);
+
+            super.paintComponent(g2);
+
+            if ((getText() == null || getText().isEmpty())
+                    && !isFocusOwner()
+                    && placeholder != null
+                    && !placeholder.isEmpty()) {
+
+                g2.setFont(getFont());
+                g2.setColor(new Color(150, 150, 150));
+
+                FontMetrics fm = g2.getFontMetrics();
+                int x = 14;
+                int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+
+                g2.drawString(placeholder, x, y);
+            }
+
             g2.setColor(new Color(225, 225, 225));
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
+
             g2.dispose();
         }
     }
