@@ -47,6 +47,8 @@ public class ClientMenu extends JFrame {
     private final PaymentService paymentService;
     private final CreditHistoryService creditHistoryService;
     private final NotificationCenter notificationCenter;
+    private static boolean bienvenidaMostrada = false;
+
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy");
 
@@ -130,6 +132,19 @@ public class ClientMenu extends JFrame {
 
         // Mostrar dashboard por defecto
         mostrarDashboard();
+
+        // Mostrar dashboard por defecto
+        mostrarDashboard();
+
+// Notificación de bienvenida (solo 1 vez por sesión)
+        if (!bienvenidaMostrada && notificationCenter != null) {
+            notificationCenter.info(
+                    "Bienvenido/a, " + getClientFirstName(),
+                    "Nos alegra verte de nuevo en CrediNet"
+            );
+            bienvenidaMostrada = true;
+        }
+
     }
 
     // ======================
