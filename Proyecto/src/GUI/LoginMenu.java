@@ -277,7 +277,7 @@ public class LoginMenu extends JFrame {
 
         try {
             LoanService loanService = new LoanService();
-            PaymentService paymentService = new PaymentService();
+            PaymentService paymentService = new PaymentService(loanService);
             CreditHistoryService creditHistoryService = new CreditHistoryService();
             //NotificationService notificationService = new NotificationService(); // cuando la tengas
 

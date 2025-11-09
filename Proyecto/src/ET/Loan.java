@@ -6,7 +6,6 @@ import java.util.Date;
 public class Loan implements Serializable {
     private int loanId;
     private Client clientId;
-    private Operator operatorId;
     private long amount;
     private short interestRate;
     private short termMonths;
@@ -20,10 +19,9 @@ public class Loan implements Serializable {
     }
 
     // Overloaded constructor (all-args)
-    public Loan(int loanId, Client clientId, Operator operatorId, long amount, short interestRate, short termMonths, long totalToPay, Date startDate, Date endDate, String status) {
+    public Loan(int loanId, Client clientId, long amount, short interestRate, short termMonths, long totalToPay, Date startDate, Date endDate, String status) {
         this.loanId = loanId;
         this.clientId = clientId;
-        this.operatorId = operatorId;
         this.amount = amount;
         this.interestRate = interestRate;
         this.termMonths = termMonths;
@@ -47,14 +45,6 @@ public class Loan implements Serializable {
 
     public void setClientId(Client clientId) {
         this.clientId = clientId;
-    }
-
-    public Operator getOperatorId() {
-        return operatorId;
-    }
-
-    public void setOperatorId(Operator operatorId) {
-        this.operatorId = operatorId;
     }
 
     public long getAmount() {

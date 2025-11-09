@@ -598,11 +598,6 @@ public class ClientMenu extends JFrame {
         lblHelpPlazo.setForeground(new Color(120, 120, 120));
         lblHelpPlazo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        sPlazo.addChangeListener(e -> {
-            int meses = sPlazo.getValue();
-            lblPlazoValor.setText("Plazo seleccionado: " + meses + " mes" + (meses == 1 ? "" : "es"));
-        });
-
         plazoPanel.add(lblPlazo);
         plazoPanel.add(Box.createVerticalStrut(4));
         plazoPanel.add(sPlazo);
@@ -635,26 +630,60 @@ public class ClientMenu extends JFrame {
         resumen.add(lblResPlazo);
         resumen.add(lblResCuota);
 
+        // ====== Lógica central: actualizar resumen con LoanService ======
+        Runnable actualizarResumen = () -> {
+            String textoMonto = txtMonto.getText().trim();
+            int meses = sPlazo.getValue();
+
+            // Siempre mostramos el plazo
+            lblResPlazo.setText("Plazo: " + meses + " mes" + (meses == 1 ? "" : "es"));
+
+            if (textoMonto.isEmpty()) {
+                lblResMonto.setText("Monto solicitado: —");
+                lblResCuota.setText("Cuota estimada: —");
+                return;
+            }
+
+            try {
+                double monto = Double.parseDouble(textoMonto);
+
+                lblResMonto.setText("Monto solicitado: ₡ " + textoMonto);
+
+                double cuota = 0.0;
+                if (loanService != null) {
+                    cuota = loanService.calculateCuota(monto, meses);
+                }
+
+                if (cuota <= 0) {
+                    lblResCuota.setText("Cuota estimada: —");
+                } else {
+                    // Si tienes un método formatMoney(int v) en esta clase, puedes usarlo:
+                    // lblResCuota.setText("Cuota estimada: ₡ " + formatMoney((int) Math.round(cuota)));
+                    lblResCuota.setText("Cuota estimada: ₡ " + String.format("%,.2f", cuota));
+                }
+
+            } catch (NumberFormatException ex) {
+                lblResMonto.setText("Monto solicitado: —");
+                lblResCuota.setText("Cuota estimada: —");
+            }
+        };
+
+        // Cuando cambia el plazo, actualizamos texto + resumen
         sPlazo.addChangeListener(e -> {
             int meses = sPlazo.getValue();
-            lblResPlazo.setText("Plazo: " + meses + " mes" + (meses == 1 ? "" : "es"));
+            lblPlazoValor.setText("Plazo seleccionado: " + meses + " mes" + (meses == 1 ? "" : "es"));
+            actualizarResumen.run();
         });
 
+        // Cuando cambia el monto, actualizamos resumen
         txtMonto.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             private void update() {
-                String t = txtMonto.getText().trim();
-                if (t.isEmpty()) {
-                    lblResMonto.setText("Monto solicitado: —");
-                } else {
-                    lblResMonto.setText("Monto solicitado: ₡ " + t);
-                }
+                actualizarResumen.run();
             }
             @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
             @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
             @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
         });
-
-
 
         resumen.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(resumen);
@@ -683,8 +712,8 @@ public class ClientMenu extends JFrame {
         return card;
     }
 
+
     // ---------- Pantalla dedicada: Solicitar préstamo ----------
-    // (igual que tenías, solo cambié el mensaje del JOptionPane)
     private JPanel buildLoanRequestScreen() {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(BG_APP);
@@ -843,6 +872,33 @@ public class ClientMenu extends JFrame {
             resumen.add(l);
             resumen.add(Box.createVerticalStrut(4));
         }
+        Runnable actualizarResumen = () -> actualizarResumenSolicitudPrestamo(
+                txtMonto,
+                spPlazo,
+                cbTipo,
+                rMonto,
+                rPlazo,
+                rTipo,
+                rCuota,
+                rTotal
+        );
+
+        // Cuando cambia el monto
+        txtMonto.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void update() { actualizarResumen.run(); }
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
+        });
+
+        // Cuando cambia el plazo
+        spPlazo.addChangeListener(e -> actualizarResumen.run());
+
+        // Cuando cambia el tipo de préstamo
+        cbTipo.addActionListener(e -> actualizarResumen.run());
+
+        // Llamada inicial para que no quede todo en "—"
+        actualizarResumen.run();
 
         JLabel helper = new JLabel("<html><span style='color:#666666;'>Estos valores son estimados. La aprobación y tasa final dependen de la evaluación crediticia.</span></html>");
         helper.setFont(fSmall);
@@ -875,9 +931,26 @@ public class ClientMenu extends JFrame {
         JButton btnEnviar = primaryButton("Enviar solicitud");
         btnEnviar.setPreferredSize(new Dimension(180, 38));
         btnEnviar.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this,
-                    "Aquí creas un Loan real usando LoanService y lo guardas en loans.dat.\n" +
-                            "Tú te encargas de la lógica de negocio, yo de que la pantalla esté lista 💙");
+            try {
+                long monto = Long.parseLong(txtMonto.getText().trim());
+                int meses = (Integer) spPlazo.getValue();
+                short tasaAnual = 24;
+
+                Loan nuevo = loanService.crearPrestamoParaCliente(
+                        client,
+                        monto,
+                        tasaAnual,
+                        (short) meses,
+                        "VIGENTE"
+                );
+
+                JOptionPane.showMessageDialog(this,
+                        "Solicitud registrada. ID préstamo: #" + nuevo.getLoanId());
+                mostrarDashboard();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Error al crear el préstamo: " + ex.getMessage());
+            }
         });
 
         footer.add(btnCancelar);
@@ -1024,20 +1097,30 @@ public class ClientMenu extends JFrame {
         actions.setAlignmentX(Component.LEFT_ALIGNMENT);
         actions.add(Box.createHorizontalGlue());
 
-        JButton btnPagarCuota = primaryButton("Ir a pagos");
+        JButton btnPagarCuota = primaryButton("Pagar cuota");
         btnPagarCuota.setPreferredSize(new Dimension(150, 36));
         btnPagarCuota.setMaximumSize(new Dimension(200, 36));
-        btnPagarCuota.addActionListener(e -> mostrarPagos());
+        btnPagarCuota.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row >= 0 && row < loansForClient.size()) {
+                Loan loanSeleccionado = loansForClient.get(row);
+                abrirDialogoPago(loanSeleccionado);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Selecciona un préstamo en la tabla primero.",
+                        "Sin selección", JOptionPane.WARNING_MESSAGE);
+            }
+        });
 
-        JButton btnVerPlan = new JButton("Ver plan de pagos");
+
+        JButton btnVerPlan = new JButton("Ver pagos");
         btnVerPlan.setFocusPainted(false);
         btnVerPlan.setBackground(new Color(240, 240, 240));
         btnVerPlan.setForeground(TEXT_DARK);
         btnVerPlan.setFont(fSmall);
         btnVerPlan.setBorder(new EmptyBorder(8, 14, 8, 14));
         btnVerPlan.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this,
-                    "Aquí podrías mostrar un plan de pagos (tabla de amortización) calculado desde el Loan.");
+            mostrarPagos();
         });
 
         actions.add(btnVerPlan);
@@ -1244,10 +1327,7 @@ public class ClientMenu extends JFrame {
         btnNuevoPago.setForeground(TEXT_DARK);
         btnNuevoPago.setFont(fSmall);
         btnNuevoPago.setBorder(new EmptyBorder(8, 14, 8, 14));
-        btnNuevoPago.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this,
-                    "Aquí podrías abrir un formulario para registrar un pago nuevo y guardarlo en payments.dat.");
-        });
+        btnNuevoPago.addActionListener(e -> abrirDialogoPago(null));
 
         actions.add(btnNuevoPago);
         actions.add(Box.createHorizontalStrut(8));
@@ -1386,6 +1466,158 @@ public class ClientMenu extends JFrame {
     }
 
     // ====================== Helpers UI ======================
+    // Actualiza el panel de resumen en la pantalla "Nueva solicitud de préstamo"
+    private void actualizarResumenSolicitudPrestamo(
+            JTextField txtMonto,
+            JSpinner spPlazo,
+            JComboBox<String> cbTipo,
+            JLabel rMonto,
+            JLabel rPlazo,
+            JLabel rTipo,
+            JLabel rCuota,
+            JLabel rTotal
+    ) {
+        String textoMonto = txtMonto.getText().trim();
+        int plazoMeses = (int) spPlazo.getValue();
+        String tipo = (String) cbTipo.getSelectedItem();
+
+        // Siempre mostramos plazo y tipo
+        rPlazo.setText("Plazo: " + plazoMeses + " mes" + (plazoMeses == 1 ? "" : "es"));
+        rTipo.setText("Tipo: " + (tipo != null ? tipo : "—"));
+
+        if (textoMonto.isEmpty()) {
+            rMonto.setText("Monto: —");
+            rCuota.setText("Cuota estimada: —");
+            rTotal.setText("Monto total estimado: —");
+            return;
+        }
+
+        try {
+            double monto = Double.parseDouble(textoMonto);
+
+            // Usamos tu formatMoney(long) redondeando
+            long montoLong = Math.round(monto);
+            rMonto.setText("Monto: ₡ " + formatMoney(montoLong));
+
+            double cuota = 0.0;
+            if (loanService != null) {
+                cuota = loanService.calculateCuota(monto, plazoMeses);
+            }
+
+            if (cuota <= 0) {
+                rCuota.setText("Cuota estimada: —");
+                rTotal.setText("Monto total estimado: —");
+            } else {
+                long cuotaLong = Math.round(cuota);
+                long totalEstimado = cuotaLong * plazoMeses;
+
+                rCuota.setText("Cuota estimada: ₡ " + formatMoney(cuotaLong));
+                rTotal.setText("Monto total estimado: ₡ " + formatMoney(totalEstimado));
+            }
+
+        } catch (NumberFormatException ex) {
+            // Si el usuario escribe algo no numérico
+            rMonto.setText("Monto: —");
+            rCuota.setText("Cuota estimada: —");
+            rTotal.setText("Monto total estimado: —");
+        }
+    }
+
+    // ============= Diálogo para registrar un pago =============
+    private void abrirDialogoPago(Loan prestamoPreseleccionado) {
+        if (loanService == null || paymentService == null || client == null) {
+            JOptionPane.showMessageDialog(this,
+                    "No hay servicios configurados para registrar pagos.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        java.util.List<Loan> loansCliente = loanService.getLoansByClientId(client.getClientId());
+        if (loansCliente.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No tienes préstamos registrados para realizar pagos.",
+                    "Sin préstamos", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Combo de préstamos
+        JComboBox<Loan> cbLoans = new JComboBox<>(loansCliente.toArray(new Loan[0]));
+        cbLoans.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JLabel lbl = new JLabel();
+            if (value != null) {
+                lbl.setText("#" + value.getLoanId() +
+                        " · ₡ " + formatMoney(value.getAmount()) +
+                        " · " + value.getStatus());
+            } else {
+                lbl.setText("Selecciona un préstamo");
+            }
+            if (isSelected) {
+                lbl.setOpaque(true);
+                lbl.setBackground(new Color(230, 240, 255));
+            }
+            return lbl;
+        });
+
+        if (prestamoPreseleccionado != null) {
+            cbLoans.setSelectedItem(prestamoPreseleccionado);
+            cbLoans.setEnabled(false);
+        }
+
+        JTextField txtMonto = new JTextField();
+        txtMonto.setColumns(10);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new java.awt.GridLayout(0, 1, 4, 4));
+        panel.add(new JLabel("Préstamo:"));
+        panel.add(cbLoans);
+        panel.add(new JLabel("Monto a pagar (₡):"));
+        panel.add(txtMonto);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Registrar pago",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result == JOptionPane.OK_OPTION) {
+            Loan selectedLoan = (Loan) cbLoans.getSelectedItem();
+            if (selectedLoan == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Debes seleccionar un préstamo.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            try {
+                long amount = Long.parseLong(txtMonto.getText().trim());
+                Payment pago = paymentService.registrarPago(selectedLoan, amount);
+
+                JOptionPane.showMessageDialog(this,
+                        "Pago registrado correctamente.\n" +
+                                "ID pago: #" + pago.getPaymentId(),
+                        "Pago registrado", JOptionPane.INFORMATION_MESSAGE);
+
+                // 🔄 Recargar toda la vista para que:
+                // - El card "Préstamo activo" muestre el nuevo saldo
+                // - El card "Mis préstamos" (dashboard) se actualice
+                // - La sección "Mis préstamos" y "Pagos" usen los saldos nuevos
+                ClientMenu nuevo = new ClientMenu(client, loanService, paymentService, creditHistoryService);
+                nuevo.mostrar();
+                dispose();
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Monto inválido. Usa solo números.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                        "No se pudo registrar el pago:\n" + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+
     private JButton primaryButton(String text) {
         JButton b = new JButton(text);
         b.setFocusPainted(false);
