@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Comparator;
 
 public class ClientMenu extends JFrame {
     // ======= Paleta =======
@@ -65,6 +66,7 @@ public class ClientMenu extends JFrame {
     private RoundedPanel navSolicitar;
     private RoundedPanel navMisPrestamos;
     private RoundedPanel navPagos;
+    private RoundedPanel navEstadosCuenta;
 
     // ========= NUEVO CONSTRUCTOR: recibe cliente + servicios =========
     public ClientMenu(Client client,
@@ -102,17 +104,16 @@ public class ClientMenu extends JFrame {
 
         // Dashboard
         JPanel dashboard = buildDashboardContent();
-        // Pantalla dedicada: Solicitar préstamo
         JPanel loanScreen = buildLoanRequestScreen();
-        // Pantalla dedicada: Mis préstamos
         JPanel loansListScreen = buildLoansScreen();
-        // Pantalla dedicada: Pagos
         JPanel paymentsScreen = buildPaymentsScreen();
+        JPanel statementsScreen = buildAccountStatementsScreen();
 
         mainContent.add(dashboard, "dashboard");
         mainContent.add(loanScreen, "loan");
         mainContent.add(loansListScreen, "loans");
         mainContent.add(paymentsScreen, "payments");
+        mainContent.add(statementsScreen, "statements");
 
         center.add(mainContent, BorderLayout.CENTER);
         root.add(center, BorderLayout.CENTER);
@@ -171,11 +172,17 @@ public class ClientMenu extends JFrame {
         setActiveNav("payments");
     }
 
+    private void mostrarEstadosCuenta() {
+        mainContentLayout.show(mainContent, "statements");
+        setActiveNav("statements");
+    }
+
     private void setActiveNav(String key) {
         setNavActive(navDashboard, "dashboard".equals(key));
         setNavActive(navSolicitar, "loan".equals(key));
         setNavActive(navMisPrestamos, "loans".equals(key));
         setNavActive(navPagos, "payments".equals(key));
+        setNavActive(navEstadosCuenta, "statements".equals(key)); // <-- NUEVO
     }
 
     private void setNavActive(RoundedPanel nav, boolean active) {
@@ -246,7 +253,8 @@ public class ClientMenu extends JFrame {
         side.add(navPagos);
         side.add(Box.createVerticalStrut(14));
 
-        side.add(simpleNavItem("Estados de Cuenta", false));
+        navEstadosCuenta = createNavItem("Estados de Cuenta", false, this::mostrarEstadosCuenta);
+        side.add(navEstadosCuenta);
         side.add(Box.createVerticalStrut(14));
         side.add(simpleNavItem("Perfil", false));
 
@@ -1390,6 +1398,206 @@ public class ClientMenu extends JFrame {
         return root;
     }
 
+    // ---------- Pantalla dedicada: Estados de Cuenta ----------
+// Muestra un resumen global (total desembolsado, pagado, saldo)
+// y una tabla con movimientos (desembolsos y pagos) en orden cronológico.
+    private JPanel buildAccountStatementsScreen() {
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG_APP);
+        root.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JPanel wrap = new JPanel(new GridBagLayout());
+        wrap.setOpaque(false);
+
+        CardPanel card = new CardPanel();
+        card.setLayout(new BorderLayout());
+
+        // Header
+        JPanel header = new JPanel();
+        header.setOpaque(false);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBorder(new EmptyBorder(16, 16, 0, 16));
+
+        JLabel title = new JLabel("Estados de Cuenta");
+        title.setFont(fH2);
+        title.setForeground(TEXT_DARK);
+
+        JLabel subtitle = new JLabel("Resumen de tus préstamos desembolsados y pagos realizados.");
+        subtitle.setFont(fSmall);
+        subtitle.setForeground(TEXT_MUTED);
+
+        header.add(title);
+        header.add(Box.createVerticalStrut(4));
+        header.add(subtitle);
+
+        card.add(header, BorderLayout.NORTH);
+
+        // Body: 2 columnas (resumen + movimientos)
+        JPanel body = new JPanel(new GridBagLayout());
+        body.setOpaque(false);
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(0, 16, 16, 16);
+        c.fill = GridBagConstraints.BOTH;
+
+        // ===== Datos base =====
+        List<Loan> loansCliente = new ArrayList<>();
+        if (loanService != null && client != null) {
+            loansCliente = loanService.getLoansByClientId(client.getClientId());
+        }
+
+        List<Payment> paymentsCliente = new ArrayList<>();
+        if (paymentService != null && client != null) {
+            paymentsCliente = paymentService.getPaymentsForClient(client.getClientId());
+        }
+
+        long totalDesembolsado = 0;
+        long saldoVigente = 0;
+        for (Loan loan : loansCliente) {
+            totalDesembolsado += loan.getAmount();
+            saldoVigente += getRemainingBalance(loan);
+        }
+
+        long totalPagado = 0;
+        for (Payment p : paymentsCliente) {
+            totalPagado += p.getAmountPaid();
+        }
+
+        // ===== Columna izquierda: resumen global =====
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.setBorder(new EmptyBorder(16, 0, 16, 8));
+
+        JLabel lblResumen = new JLabel("Resumen general");
+        lblResumen.setFont(fUI);
+        lblResumen.setForeground(TEXT_DARK);
+        lblResumen.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        RoundedPanel resumen = new RoundedPanel(16, new Color(248, 249, 252));
+        resumen.setLayout(new BoxLayout(resumen, BoxLayout.Y_AXIS));
+        resumen.setBorder(new EmptyBorder(14, 14, 14, 14));
+        resumen.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel rNumPrestamos = new JLabel("Cantidad de préstamos: " + loansCliente.size());
+        JLabel rTotalDesembolsado = new JLabel("Total desembolsado: ₡ " + formatMoney(totalDesembolsado));
+        JLabel rTotalPagado = new JLabel("Total pagado: ₡ " + formatMoney(totalPagado));
+        JLabel rSaldoVigente = new JLabel("Saldo vigente: ₡ " + formatMoney(saldoVigente));
+
+        for (JLabel l : new JLabel[]{rNumPrestamos, rTotalDesembolsado, rTotalPagado, rSaldoVigente}) {
+            l.setFont(fSmall);
+            l.setForeground(TEXT_DARK);
+            l.setAlignmentX(Component.LEFT_ALIGNMENT);
+            resumen.add(l);
+            resumen.add(Box.createVerticalStrut(4));
+        }
+
+        JLabel helper = new JLabel("<html><span style='color:#666666;'>Estos montos consideran todos tus préstamos y pagos registrados en el sistema.</span></html>");
+        helper.setFont(fSmall);
+        helper.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        left.add(lblResumen);
+        left.add(Box.createVerticalStrut(12));
+        left.add(resumen);
+        left.add(Box.createVerticalStrut(12));
+        left.add(helper);
+        left.add(Box.createVerticalGlue());
+
+        c.gridx = 0; c.gridy = 0; c.weightx = 0.35; c.weighty = 1.0;
+        body.add(left, c);
+
+        // ===== Columna derecha: tabla de movimientos =====
+        JPanel right = new JPanel();
+        right.setOpaque(false);
+        right.setLayout(new BorderLayout());
+        right.setBorder(new EmptyBorder(16, 8, 16, 0));
+
+        JLabel lblMov = new JLabel("Movimientos (desembolsos y pagos)");
+        lblMov.setFont(fUI);
+        lblMov.setForeground(TEXT_DARK);
+        lblMov.setBorder(new EmptyBorder(0, 0, 8, 0));
+
+        String[] cols = {"Fecha", "Tipo", "Detalle", "Cargo (₡)", "Abono (₡)"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        // Armamos lista combinada de movimientos
+        List<Movement> movimientos = new ArrayList<>();
+
+        // Desembolsos de préstamos (cargos)
+        for (Loan loan : loansCliente) {
+            Date fecha = loan.getStartDate(); // suponiendo que tu entidad Loan tiene startDate
+            if (fecha == null) continue;
+            movimientos.add(new Movement(
+                    fecha,
+                    "Préstamo",
+                    "Desembolso préstamo #" + loan.getLoanId(),
+                    loan.getAmount(),
+                    true // es cargo
+            ));
+        }
+
+        // Pagos (abonos)
+        for (Payment p : paymentsCliente) {
+            Date fecha = p.getPaymentDate();
+            if (fecha == null) continue;
+            Loan l = p.getLoanId();
+            String detalle = "Pago préstamo " + (l != null ? ("#" + l.getLoanId()) : "");
+            movimientos.add(new Movement(
+                    fecha,
+                    "Pago",
+                    detalle,
+                    p.getAmountPaid(),
+                    false // es abono
+            ));
+        }
+
+        // Ordenar por fecha
+        movimientos.sort(Comparator.comparing(Movement::getDate));
+
+        // Llenar la tabla
+        for (Movement m : movimientos) {
+            String cargo = m.isDebit() ? "₡ " + formatMoney(m.getAmount()) : "";
+            String abono = m.isDebit() ? "" : "₡ " + formatMoney(m.getAmount());
+            model.addRow(new Object[]{
+                    formatDate(m.getDate()),
+                    m.getType(),
+                    m.getDetail(),
+                    cargo,
+                    abono
+            });
+        }
+
+        JTable table = new JTable(model);
+        table.setRowHeight(32);
+        table.setFont(fUI);
+        table.getTableHeader().setFont(fSmall);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setFillsViewportHeight(true);
+        table.setBackground(Color.WHITE);
+
+        JScrollPane spTable = new JScrollPane(table);
+        spTable.setBorder(new EmptyBorder(0, 0, 0, 0));
+
+        right.add(lblMov, BorderLayout.NORTH);
+        right.add(spTable, BorderLayout.CENTER);
+
+        c.gridx = 1; c.gridy = 0; c.weightx = 0.65; c.weighty = 1.0;
+        body.add(right, c);
+
+        card.add(body, BorderLayout.CENTER);
+
+        GridBagConstraints wrapperC = new GridBagConstraints();
+        wrapperC.gridx = 0; wrapperC.gridy = 0;
+        wrapperC.weightx = 1.0; wrapperC.weighty = 1.0;
+        wrapperC.fill = GridBagConstraints.BOTH;
+        wrap.add(card, wrapperC);
+
+        root.add(wrap, BorderLayout.CENTER);
+        return root;
+    }
+
     private JComponent buildCardNotificaciones() {
         CardPanel card = new CardPanel();
 
@@ -1906,6 +2114,29 @@ public class ClientMenu extends JFrame {
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
             g2.dispose();
         }
+    }
+
+    // Movimiento usado en Estados de Cuenta
+    private static class Movement {
+        private final Date date;
+        private final String type;
+        private final String detail;
+        private final long amount;
+        private final boolean debit; // true = cargo, false = abono
+
+        public Movement(Date date, String type, String detail, long amount, boolean debit) {
+            this.date = date;
+            this.type = type;
+            this.detail = detail;
+            this.amount = amount;
+            this.debit = debit;
+        }
+
+        public Date getDate() { return date; }
+        public String getType() { return type; }
+        public String getDetail() { return detail; }
+        public long getAmount() { return amount; }
+        public boolean isDebit() { return debit; }
     }
 
     // ======== Mostrar ========
