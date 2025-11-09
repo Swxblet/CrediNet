@@ -63,10 +63,9 @@ public class ClientService {
         return false;
     }
 
-    public boolean deleteClient(String in) throws Exception{
-        Client existingClient = searchClientByIN(in);
-        if (existingClient != null){
-            clientDAL.deleteClient(existingClient);
+    public boolean deleteClient(Client client) throws Exception{
+        if (client != null){
+            clientDAL.deleteClient(client);
             return true;
         }
         return false;

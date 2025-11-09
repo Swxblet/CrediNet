@@ -24,6 +24,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Comparator;
 
+import static GUI.LoginMenu.clientService;
+
 public class ClientMenu extends JFrame {
     // ======= Paleta =======
     private static final Color BLUE_1 = new Color(0, 123, 255);
@@ -67,6 +69,7 @@ public class ClientMenu extends JFrame {
     private RoundedPanel navMisPrestamos;
     private RoundedPanel navPagos;
     private RoundedPanel navEstadosCuenta;
+    private RoundedPanel navPerfil;
 
     // ========= NUEVO CONSTRUCTOR: recibe cliente + servicios =========
     public ClientMenu(Client client,
@@ -108,12 +111,14 @@ public class ClientMenu extends JFrame {
         JPanel loansListScreen = buildLoansScreen();
         JPanel paymentsScreen = buildPaymentsScreen();
         JPanel statementsScreen = buildAccountStatementsScreen();
+        JPanel profileScreen = buildProfileScreen();
 
         mainContent.add(dashboard, "dashboard");
         mainContent.add(loanScreen, "loan");
         mainContent.add(loansListScreen, "loans");
         mainContent.add(paymentsScreen, "payments");
         mainContent.add(statementsScreen, "statements");
+        mainContent.add(profileScreen, "profile");
 
         center.add(mainContent, BorderLayout.CENTER);
         root.add(center, BorderLayout.CENTER);
@@ -177,12 +182,18 @@ public class ClientMenu extends JFrame {
         setActiveNav("statements");
     }
 
+    private void mostrarPerfil() {
+        mainContentLayout.show(mainContent, "profile");
+        setActiveNav("profile");
+    }
+
     private void setActiveNav(String key) {
         setNavActive(navDashboard, "dashboard".equals(key));
         setNavActive(navSolicitar, "loan".equals(key));
         setNavActive(navMisPrestamos, "loans".equals(key));
         setNavActive(navPagos, "payments".equals(key));
-        setNavActive(navEstadosCuenta, "statements".equals(key)); // <-- NUEVO
+        setNavActive(navEstadosCuenta, "statements".equals(key));
+        setNavActive(navPerfil, "profile".equals(key));  // NUEVO
     }
 
     private void setNavActive(RoundedPanel nav, boolean active) {
@@ -256,10 +267,14 @@ public class ClientMenu extends JFrame {
         navEstadosCuenta = createNavItem("Estados de Cuenta", false, this::mostrarEstadosCuenta);
         side.add(navEstadosCuenta);
         side.add(Box.createVerticalStrut(14));
-        side.add(simpleNavItem("Perfil", false));
+
+        navPerfil = createNavItem("Perfil", false, this::mostrarPerfil);
+        side.add(navPerfil);
+        side.add(Box.createVerticalStrut(14));
 
         side.add(Box.createVerticalGlue());
         return side;
+
     }
 
     // NavItem con acción
@@ -1598,6 +1613,333 @@ public class ClientMenu extends JFrame {
         return root;
     }
 
+    // ---------- Pantalla dedicada: Perfil del cliente ----------
+    private JPanel buildProfileScreen() {
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG_APP);
+        root.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JPanel wrap = new JPanel(new GridBagLayout());
+        wrap.setOpaque(false);
+
+        CardPanel card = new CardPanel();
+        card.setLayout(new BorderLayout());
+
+        // ===== Header elegante =====
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(16, 16, 0, 16));
+
+        JLabel title = new JLabel("Tu perfil");
+        title.setFont(fH2);
+        title.setForeground(TEXT_DARK);
+
+        JLabel subtitle = new JLabel("Cuida tu información. Este es el corazón de tu identidad en CrediNet.");
+        subtitle.setFont(fSmall);
+        subtitle.setForeground(TEXT_MUTED);
+
+        JPanel titleBox = new JPanel();
+        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
+        titleBox.setOpaque(false);
+        titleBox.add(title);
+        titleBox.add(Box.createVerticalStrut(4));
+        titleBox.add(subtitle);
+
+        header.add(titleBox, BorderLayout.WEST);
+
+        card.add(header, BorderLayout.NORTH);
+
+        // ===== Body: 2 columnas =====
+        JPanel body = new JPanel(new GridBagLayout());
+        body.setOpaque(false);
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(0, 16, 16, 16);
+        c.fill = GridBagConstraints.BOTH;
+
+        // ===========================
+        // Columna izquierda: resumen
+        // ===========================
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.setBorder(new EmptyBorder(16, 0, 16, 8));
+
+        // Avatar grande con iniciales
+        String nombreCompleto = (client != null && client.getFullName() != null)
+                ? client.getFullName().trim()
+                : "Cliente CrediNet";
+
+        String iniciales = "?";
+        if (!nombreCompleto.isEmpty()) {
+            String[] partes = nombreCompleto.split("\\s+");
+            if (partes.length == 1) {
+                iniciales = partes[0].substring(0, 1).toUpperCase();
+            } else {
+                iniciales = (partes[0].substring(0, 1) + partes[1].substring(0, 1)).toUpperCase();
+            }
+        }
+
+        JPanel avatar = new RoundedPanel(80, new Color(33, 150, 243));
+        avatar.setPreferredSize(new Dimension(96, 96));
+        avatar.setMaximumSize(new Dimension(96, 96));
+        avatar.setLayout(new GridBagLayout());
+
+        JLabel initialsLabel = new JLabel(iniciales);
+        initialsLabel.setFont(safeFont(32, Font.BOLD));
+        initialsLabel.setForeground(Color.WHITE);
+        avatar.add(initialsLabel);
+
+        JLabel lblNombre = new JLabel(nombreCompleto);
+        lblNombre.setFont(fH3);
+        lblNombre.setForeground(TEXT_DARK);
+
+        String idTexto = (client != null) ? ("Cliente #" + client.getClientId()) : "Cliente invitado";
+        JLabel lblId = new JLabel(idTexto);
+        lblId.setFont(fSmall);
+        lblId.setForeground(TEXT_MUTED);
+
+        // Pequeño resumen financiero del cliente
+        long totalDesembolsado = 0;
+        long saldoVigente = 0;
+        long totalPagado = 0;
+        int prestamosVigentes = 0;
+
+        if (client != null && loanService != null) {
+            List<Loan> loansCliente = loanService.getLoansByClientId(client.getClientId());
+            for (Loan loan : loansCliente) {
+                totalDesembolsado += loan.getAmount();
+                long remaining = getRemainingBalance(loan);
+                saldoVigente += remaining;
+                if ("VIGENTE".equalsIgnoreCase(loan.getStatus())) {
+                    prestamosVigentes++;
+                }
+            }
+        }
+        if (client != null && paymentService != null) {
+            List<Payment> pagosCliente = paymentService.getPaymentsForClient(client.getClientId());
+            for (Payment p : pagosCliente) {
+                totalPagado += p.getAmountPaid();
+            }
+        }
+
+        RoundedPanel resumenCard = new RoundedPanel(16, new Color(248, 249, 252));
+        resumenCard.setLayout(new BoxLayout(resumenCard, BoxLayout.Y_AXIS));
+        resumenCard.setBorder(new EmptyBorder(14, 14, 14, 14));
+        resumenCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel rPrestamos = new JLabel("Préstamos vigentes: " + prestamosVigentes);
+        JLabel rDesembolsado = new JLabel("Total desembolsado: ₡ " + formatMoney(totalDesembolsado));
+        JLabel rPagado = new JLabel("Total pagado: ₡ " + formatMoney(totalPagado));
+        JLabel rSaldo = new JLabel("Saldo pendiente: ₡ " + formatMoney(saldoVigente));
+
+        for (JLabel l : new JLabel[]{rPrestamos, rDesembolsado, rPagado, rSaldo}) {
+            l.setFont(fSmall);
+            l.setForeground(TEXT_DARK);
+            l.setAlignmentX(Component.LEFT_ALIGNMENT);
+            resumenCard.add(l);
+            resumenCard.add(Box.createVerticalStrut(4));
+        }
+
+        JLabel frase = new JLabel("<html><i>“Un buen historial empieza con datos bien cuidados.”</i></html>");
+        frase.setFont(fSmall);
+        frase.setForeground(new Color(120, 120, 120));
+        frase.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        left.add(avatar);
+        left.add(Box.createVerticalStrut(12));
+        left.add(lblNombre);
+        left.add(Box.createVerticalStrut(2));
+        left.add(lblId);
+        left.add(Box.createVerticalStrut(16));
+        left.add(resumenCard);
+        left.add(Box.createVerticalStrut(12));
+        left.add(frase);
+        left.add(Box.createVerticalGlue());
+
+        c.gridx = 0; c.gridy = 0; c.weightx = 0.35; c.weighty = 1.0;
+        body.add(left, c);
+
+        // ===========================
+        // Columna derecha: edición
+        // ===========================
+        JPanel right = new JPanel();
+        right.setOpaque(false);
+        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
+        right.setBorder(new EmptyBorder(16, 8, 16, 0));
+
+        JLabel lblEditar = new JLabel("Editar información");
+        lblEditar.setFont(fUI);
+        lblEditar.setForeground(TEXT_DARK);
+        lblEditar.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        RoundedPanel formCard = new RoundedPanel(16, Color.WHITE);
+        formCard.setLayout(new BoxLayout(formCard, BoxLayout.Y_AXIS));
+        formCard.setBorder(new EmptyBorder(16, 16, 16, 16));
+        formCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Campos (ajusta estos getters/setters a tu entidad Client si cambian los nombres)
+        JTextField txtNombre = new JTextField(nombreCompleto);
+        txtNombre.setFont(fUI);
+        txtNombre.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+
+        JTextField txtEmail = new JTextField();
+        txtEmail.setFont(fUI);
+        txtEmail.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+
+        JTextField txtTelefono = new JTextField();
+        txtTelefono.setFont(fUI);
+        txtTelefono.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+
+        JTextField txtDireccion = new JTextField();
+        txtDireccion.setFont(fUI);
+        txtDireccion.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+
+        try {
+            if (client != null && client.getEmail() != null) txtEmail.setText(client.getEmail());
+            if (client != null && client.getPhone() != null) txtTelefono.setText(client.getPhone());
+            if (client != null && client.getAddress() != null) txtDireccion.setText(client.getAddress());
+        } catch (Exception ignored) {
+            JOptionPane.showMessageDialog(null, "Error al obtener datos del cliente.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        formCard.add(labelField("Nombre completo", txtNombre));
+        formCard.add(Box.createVerticalStrut(8));
+        formCard.add(labelField("Correo electrónico", txtEmail));
+        formCard.add(Box.createVerticalStrut(8));
+        formCard.add(labelField("Teléfono", txtTelefono));
+        formCard.add(Box.createVerticalStrut(8));
+        formCard.add(labelField("Dirección", txtDireccion));
+        formCard.add(Box.createVerticalStrut(16));
+
+        JLabel notaSeguridad = new JLabel("<html><span style='color:#777777;font-size:11px;'>Para cambios de contraseña o datos sensibles, contacta a soporte o tu operador.</span></html>");
+        notaSeguridad.setFont(fSmall);
+        formCard.add(notaSeguridad);
+
+        // ===== Botones =====
+        JPanel buttons = new JPanel();
+        buttons.setOpaque(false);
+        buttons.setLayout(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+
+        JButton btnReset = new JButton("Restablecer");
+        btnReset.setFocusPainted(false);
+        btnReset.setBackground(new Color(245, 245, 245));
+        btnReset.setForeground(TEXT_DARK);
+        btnReset.setFont(fSmall);
+        btnReset.setBorder(new EmptyBorder(8, 14, 8, 14));
+        btnReset.addActionListener(e -> {
+            txtNombre.setText(nombreCompleto);
+            txtEmail.setText("");
+            txtTelefono.setText("");
+            txtDireccion.setText("");
+        });
+
+        JButton btnGuardar = primaryButton("Guardar cambios");
+        btnGuardar.setPreferredSize(new Dimension(180, 36));
+        btnGuardar.addActionListener(e -> {
+            if (client == null) {
+                JOptionPane.showMessageDialog(this,
+                        "No hay cliente autenticado para actualizar.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String nuevoNombre = txtNombre.getText().trim();
+            if (nuevoNombre.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "El nombre no puede estar vacío.",
+                        "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // Actualizar el objeto en memoria
+            try {
+                client.setFullName(nuevoNombre);
+                client.setEmail(txtEmail.getText().trim());
+                client.setPhone(txtTelefono.getText().trim());
+                client.setAddress(txtDireccion.getText().trim());
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Error al actualizar los datos: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // TODO: aquí deberías llamar a tu capa BL/DAL, algo como:
+            // clientService.updateClient(client);
+
+            JOptionPane.showMessageDialog(this,
+                    "Tus datos han sido actualizados.\n" +
+                            "Recuerda que algunos cambios pueden requerir validación adicional.",
+                    "Perfil actualizado", JOptionPane.INFORMATION_MESSAGE);
+
+            // Opcional: refrescar el saludo de la topbar (Hola, nombre...)
+            // Podrías reconstruir la ventana si quieres ser 100% consistente.
+        });
+
+        JButton btnEliminar = new JButton("Eliminar mi cuenta");
+        btnEliminar.setFocusPainted(false);
+        btnEliminar.setBackground(new Color(251, 233, 233));
+        btnEliminar.setForeground(new Color(176, 0, 32));
+        btnEliminar.setFont(fSmall);
+        btnEliminar.setBorder(new EmptyBorder(8, 14, 8, 14));
+        btnEliminar.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "¿Seguro que deseas eliminar tu cuenta?\n" +
+                            "Esta acción es delicada y normalmente requiere revisión de un operador.\n\n" +
+                            "En un sistema real se archivaría tu información y se revisarían tus préstamos pendientes.",
+                    "Confirmar eliminación",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                // TODO: aquí iría la llamada real a tu BL para eliminar / desactivar al cliente:
+                try{
+                    if(clientService.deleteClient(client)) {
+                        JOptionPane.showMessageDialog(this,
+                                "Se ha marcado tu cuenta para eliminación.\n" +
+                                        "Un operador revisará tu caso y te contactará si hay saldos pendientes.",
+                                "Solicitud registrada", JOptionPane.INFORMATION_MESSAGE);
+                    }else{
+                        JOptionPane.showMessageDialog(this,
+                                "Error al eliminar tu cuenta.",
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }catch (Exception ex){
+                    JOptionPane.showMessageDialog(this,
+                            "Error al eliminar tu cuenta: " + ex.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+                dispose();
+                new LoginMenu().setVisible(true);
+            }
+        });
+
+        buttons.add(btnEliminar);
+        buttons.add(btnReset);
+        buttons.add(btnGuardar);
+
+        right.add(lblEditar);
+        right.add(Box.createVerticalStrut(12));
+        right.add(formCard);
+        right.add(Box.createVerticalStrut(16));
+        right.add(buttons);
+        right.add(Box.createVerticalGlue());
+
+        c.gridx = 1; c.gridy = 0; c.weightx = 0.65; c.weighty = 1.0;
+        body.add(right, c);
+
+        card.add(body, BorderLayout.CENTER);
+
+        GridBagConstraints wrapperC = new GridBagConstraints();
+        wrapperC.gridx = 0; wrapperC.gridy = 0;
+        wrapperC.weightx = 1.0; wrapperC.weighty = 1.0;
+        wrapperC.fill = GridBagConstraints.BOTH;
+        wrap.add(card, wrapperC);
+
+        root.add(wrap, BorderLayout.CENTER);
+        return root;
+    }
+
     private JComponent buildCardNotificaciones() {
         CardPanel card = new CardPanel();
 
@@ -2137,6 +2479,26 @@ public class ClientMenu extends JFrame {
         public String getDetail() { return detail; }
         public long getAmount() { return amount; }
         public boolean isDebit() { return debit; }
+    }
+
+    // Helper para crear un bloque "label + campo" vertical en el formulario de perfil
+    private JPanel labelField(String label, JComponent field) {
+        JPanel p = new JPanel();
+        p.setOpaque(false);
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+
+        JLabel l = new JLabel(label);
+        l.setFont(fSmall);
+        l.setForeground(TEXT_MUTED);
+
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        p.add(l);
+        p.add(Box.createVerticalStrut(4));
+        p.add(field);
+
+        return p;
     }
 
     // ======== Mostrar ========
